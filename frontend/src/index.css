@@ -1,0 +1,286 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Color Palette - Deep Dark Tech & Neon */
+  --bg-primary: #080c14;
+  --bg-secondary: #0f172a;
+  --bg-panel: rgba(15, 23, 42, 0.82);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(168, 85, 247, 0.4);
+  
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  
+  /* Neon Accents */
+  --accent-cyan: #06b6d4;
+  --accent-purple: #a855f7;
+  --accent-purple-glow: rgba(168, 85, 247, 0.3);
+  
+  /* Traffic Status Colors */
+  --traffic-clear: #10b981;
+  --traffic-moderate: #f59e0b;
+  --traffic-heavy: #ef4444;
+  --traffic-jammed: #881337;
+
+  color-scheme: dark;
+  background-color: var(--bg-primary);
+  color: var(--color-text-primary);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Glassmorphism Panel styles */
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-purple);
+}
+
+/* Header & Typography */
+h1, h2, h3, h4 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* Inputs & Form Elements */
+input, select, button {
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 8px 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 2px var(--border-focus);
+}
+
+/* Styled Button */
+.btn-primary {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px 0 rgba(124, 58, 237, 0.6);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  border: 1px solid var(--border-glass);
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef6c6c;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Floating Action Button or Icon Button */
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Badge Layouts */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-clear { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.badge-moderate { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.badge-heavy { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.badge-jammed { background: rgba(136, 19, 55, 0.4); color: #fda4af; }
+
+/* ==========================================
+   Leaflet Custom Dark Mode Customizations
+   ========================================== */
+.leaflet-container {
+  font-family: 'Inter', sans-serif !important;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--border-glass) !important;
+  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.4) !important;
+}
+
+.leaflet-bar a {
+  background-color: var(--bg-panel) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--border-glass) !important;
+  transition: all 0.2s ease;
+}
+
+.leaflet-bar a:hover {
+  background-color: var(--accent-purple) !important;
+  color: #fff !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background-color: rgba(15, 23, 42, 0.3) !important;
+  color: var(--color-text-muted) !important;
+}
+
+/* Node marker styling */
+.node-marker-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+}
+
+.node-traffic-light {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(8, 12, 20, 0.95);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.node-core {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #475569;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.node-core.start { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+.node-core.end { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
+.node-core.selected { background-color: #a855f7; box-shadow: 0 0 10px #a855f7; }
+
+/* Custom Leaflet Tooltip */
+.node-map-tooltip {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-glass) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: 6px !important;
+  font-size: 0.75rem !important;
+  padding: 4px 8px !important;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
+.node-map-tooltip::before {
+  border-top-color: var(--bg-panel) !important;
+}
+
+/* Search animation visited nodes pulse styling */
+@keyframes map-pulse-anim {
+  0% {
+    r: 8;
+    fill-opacity: 0.4;
+    stroke-opacity: 0.8;
+  }
+  100% {
+    r: 30;
+    fill-opacity: 0;
+    stroke-opacity: 0;
+  }
+}
+
+.pulse-map-circle {
+  animation: map-pulse-anim 1.5s infinite ease-out;
+}
+
+/* Vehicle marker shadow glow */
+.vehicle-glow-dot {
+  filter: drop-shadow(0 0 4px currentColor);
+  transition: all 0.05s linear; /* Smooth dot movement */
+}
