@@ -2,37 +2,9 @@ const express = require('express');
 const router = express.Router();
 const pathfinder = require('../services/pathfinder');
 
-// Initial default city map centered in Manhattan, NY (lat/lng coordinates)
-const defaultNodes = [
-  { id: 'n1', name: 'Manhattan City Hall', lat: 40.7128, lng: -74.0060, trafficLight: 'green', lightTimer: 8 },
-  { id: 'n2', name: 'Wall Street bull', lat: 40.7069, lng: -74.0113, trafficLight: 'red', lightTimer: 5 },
-  { id: 'n3', name: 'Chinatown Square', lat: 40.7158, lng: -73.9967, trafficLight: 'green', lightTimer: 6 },
-  { id: 'n4', name: 'Tribeca Junction', lat: 40.7182, lng: -74.0083, trafficLight: 'red', lightTimer: 10 },
-  { id: 'n5', name: 'Union Square Hub', lat: 40.7308, lng: -73.9973, trafficLight: 'green', lightTimer: 4 },
-  { id: 'n6', name: 'East Village Crossing', lat: 40.7265, lng: -73.9815, trafficLight: 'red', lightTimer: 7 },
-  { id: 'n7', name: 'Greenwich Village Gate', lat: 40.7336, lng: -74.0027, trafficLight: 'green', lightTimer: 6 },
-  { id: 'n8', name: 'Stuyvesant Town Circle', lat: 40.7317, lng: -73.9784, trafficLight: 'red', lightTimer: 9 },
-  { id: 'n9', name: 'Battery Park Esplanade', lat: 40.7033, lng: -74.0170, trafficLight: 'green', lightTimer: 8 }
-];
+const sectors = require('../data/sectors');
 
-const rawEdges = [
-  { id: 'e1', source: 'n9', target: 'n2', traffic: 'clear', speedLimit: 50, lanes: 2 },
-  { id: 'e2', source: 'n2', target: 'n1', traffic: 'clear', speedLimit: 50, lanes: 2 },
-  { id: 'e3', source: 'n1', target: 'n3', traffic: 'moderate', speedLimit: 40, lanes: 2 },
-  { id: 'e4', source: 'n3', target: 'n6', traffic: 'clear', speedLimit: 50, lanes: 3 },
-  { id: 'e5', source: 'n6', target: 'n8', traffic: 'heavy', speedLimit: 40, lanes: 1 },
-  { id: 'e6', source: 'n8', target: 'n5', traffic: 'clear', speedLimit: 50, lanes: 2 },
-  { id: 'e7', source: 'n5', target: 'n7', traffic: 'jammed', speedLimit: 50, lanes: 2 },
-  { id: 'e8', source: 'n7', target: 'n4', traffic: 'clear', speedLimit: 40, lanes: 2 },
-  { id: 'e9', source: 'n4', target: 'n9', traffic: 'clear', speedLimit: 60, lanes: 3 },
-  { id: 'e10', source: 'n1', target: 'n5', traffic: 'clear', speedLimit: 50, lanes: 2 },
-  { id: 'e11', source: 'n2', target: 'n5', traffic: 'heavy', speedLimit: 60, lanes: 2 },
-  { id: 'e12', source: 'n3', target: 'n5', traffic: 'clear', speedLimit: 50, lanes: 2 },
-  { id: 'e13', source: 'n4', target: 'n5', traffic: 'clear', speedLimit: 50, lanes: 2 },
-  { id: 'e14', source: 'n6', target: 'n5', traffic: 'moderate', speedLimit: 45, lanes: 2 },
-  { id: 'e15', source: 'n1', target: 'n4', traffic: 'clear', speedLimit: 40, lanes: 2 },
-  { id: 'e16', source: 'n3', target: 'n4', traffic: 'clear', speedLimit: 40, lanes: 2 }
-];
+let currentSector = 'tirupati';
 
 // Fallback straight-line hydration
 function hydrateEdgesFallback(nodes, edges) {
@@ -53,20 +25,21 @@ function hydrateEdgesFallback(nodes, edges) {
   });
 }
 
-// Global active store
+// Load default Tirupati sector
+const defaultSector = sectors.tirupati;
 let currentMap = {
-  nodes: defaultNodes,
-  edges: hydrateEdgesFallback(defaultNodes, rawEdges)
+  nodes: JSON.parse(JSON.stringify(defaultSector.nodes)),
+  edges: hydrateEdgesFallback(defaultSector.nodes, JSON.parse(JSON.stringify(defaultSector.edges)))
 };
 
 // Global Preset Store with OSRM geometries placeholder
 let presets = [
   {
-    id: 'preset-manhattan',
-    name: 'Manhattan Radial Grid (Default)',
-    description: 'A radial-concentric layout around Union Square, NYC. Highly balanced and suitable for general simulation.',
-    nodes: defaultNodes,
-    edges: hydrateEdgesFallback(defaultNodes, rawEdges)
+    id: 'preset-tirupati',
+    name: 'Tirupati City Grid (Default)',
+    description: 'A real-world transit network connecting major hubs in Tirupati, Andhra Pradesh, India.',
+    nodes: currentMap.nodes,
+    edges: currentMap.edges
   }
 ];
 
@@ -105,35 +78,36 @@ async function getOSRMRoute(src, dest) {
   throw new Error('No route found by OSRM');
 }
 
-// Background Hydrator on Start
-async function hydrateInitialMapGeometries() {
-  console.log('Fetching real-world street geometries from OSRM...');
+// Sector Hydrator
+async function hydrateSectorGeometries(nodes, edges) {
   const nodesMap = {};
-  currentMap.nodes.forEach(n => { nodesMap[n.id] = n; });
+  nodes.forEach(n => { nodesMap[n.id] = n; });
 
-  const updatedEdges = [];
-  for (const edge of currentMap.edges) {
+  for (let i = 0; i < edges.length; i++) {
+    const edge = edges[i];
+    if (edge.geometry && edge.geometry.length > 0) continue;
     const src = nodesMap[edge.source];
     const dest = nodesMap[edge.target];
     if (src && dest) {
       const roadData = await getRoadGeometry(src, dest);
-      updatedEdges.push({
+      edges[i] = {
         ...edge,
         distance: roadData.distance,
         geometry: roadData.geometry
-      });
-    } else {
-      updatedEdges.push(edge);
+      };
     }
     // Throttle requests slightly (60ms) to respect OSRM public servers
     await new Promise(r => setTimeout(r, 60));
   }
-  currentMap.edges = updatedEdges;
-  presets[0].edges = updatedEdges; // sync default template
-  console.log('OSRM street geometries successfully loaded!');
 }
 
-setTimeout(hydrateInitialMapGeometries, 1000); // Trigger shortly after startup
+setTimeout(() => {
+  console.log('Fetching real-world street geometries for default sector (Tirupati)...');
+  hydrateSectorGeometries(currentMap.nodes, currentMap.edges).then(() => {
+    presets[0].edges = currentMap.edges;
+    console.log('Default sector street geometries successfully loaded!');
+  });
+}, 1000);
 
 // 1. Get current map
 router.get('/map', (req, res) => {
@@ -266,7 +240,7 @@ router.post('/presets', (req, res) => {
 // 7. DELETE custom preset
 router.delete('/presets/:id', (req, res) => {
   const { id } = req.params;
-  if (id === 'preset-manhattan') {
+  if (id.startsWith('preset-')) {
     return res.status(403).json({ error: 'Preloaded template cannot be removed.' });
   }
 
@@ -277,6 +251,62 @@ router.delete('/presets/:id', (req, res) => {
 
   presets.splice(index, 1);
   res.json({ message: 'Template deleted successfully', id });
+});
+
+// 8. GET available sectors
+router.get('/sectors', (req, res) => {
+  const list = Object.values(sectors).map(s => ({
+    id: s.id,
+    name: s.name,
+    country: s.country,
+    center: s.center
+  }));
+  res.json(list);
+});
+
+// 9. POST switch current sector
+router.post('/sector', async (req, res) => {
+  const { sectorId } = req.body;
+  if (!sectors[sectorId]) {
+    return res.status(404).json({ error: 'Sector not found' });
+  }
+
+  currentSector = sectorId;
+  const sector = sectors[sectorId];
+
+  const nodes = JSON.parse(JSON.stringify(sector.nodes));
+  const edges = hydrateEdgesFallback(nodes, JSON.parse(JSON.stringify(sector.edges)));
+
+  currentMap = { nodes, edges };
+
+  // Update default preset
+  const defaultIndex = presets.findIndex(p => p.id.startsWith('preset-'));
+  const newDefaultPreset = {
+    id: `preset-${sector.id}`,
+    name: `${sector.name} City Grid (Default)`,
+    description: `A real-world transit network connecting major hubs in ${sector.name}, ${sector.country}.`,
+    nodes: currentMap.nodes,
+    edges: currentMap.edges
+  };
+
+  if (defaultIndex !== -1) {
+    presets[defaultIndex] = newDefaultPreset;
+  } else {
+    presets.unshift(newDefaultPreset);
+  }
+
+  res.json({
+    message: `Switched sector to ${sector.name}`,
+    sectorId: sector.id,
+    center: sector.center,
+    map: currentMap
+  });
+
+  // Background hydrate geometries
+  hydrateSectorGeometries(currentMap.nodes, currentMap.edges).then(() => {
+    console.log(`OSRM hydration complete for sector: ${sector.name}`);
+    newDefaultPreset.edges = currentMap.edges;
+  });
 });
 
 module.exports = router;

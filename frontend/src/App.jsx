@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import LandingPage from './components/LandingPage';
 import LeafletMap from './components/LeafletMap';
 import Sidebar from './components/Sidebar';
 import Legend from './components/Legend';
@@ -25,41 +24,41 @@ function getHaversineDistance(lat1, lon1, lat2, lon2) {
 // Default seeded city map in Manhattan, NY
 const DEFAULT_MAP = {
   nodes: [
-    { id: 'n1', name: 'Manhattan City Hall', lat: 40.7128, lng: -74.0060, trafficLight: 'green', lightTimer: 8 },
-    { id: 'n2', name: 'Wall Street bull', lat: 40.7069, lng: -74.0113, trafficLight: 'red', lightTimer: 5 },
-    { id: 'n3', name: 'Chinatown Square', lat: 40.7158, lng: -73.9967, trafficLight: 'green', lightTimer: 6 },
-    { id: 'n4', name: 'Tribeca Junction', lat: 40.7182, lng: -74.0083, trafficLight: 'red', lightTimer: 10 },
-    { id: 'n5', name: 'Union Square Hub', lat: 40.7308, lng: -73.9973, trafficLight: 'green', lightTimer: 4 },
-    { id: 'n6', name: 'East Village Crossing', lat: 40.7265, lng: -73.9815, trafficLight: 'red', lightTimer: 7 },
-    { id: 'n7', name: 'Greenwich Village Gate', lat: 40.7336, lng: -74.0027, trafficLight: 'green', lightTimer: 6 },
-    { id: 'n8', name: 'Stuyvesant Town Circle', lat: 40.7317, lng: -73.9784, trafficLight: 'red', lightTimer: 9 },
-    { id: 'n9', name: 'Battery Park Esplanade', lat: 40.7033, lng: -74.0170, trafficLight: 'green', lightTimer: 8 }
+    { id: 'n1', name: 'Alipiri Toll Gate', lat: 13.6500, lng: 79.4005, trafficLight: 'green', lightTimer: 8 },
+    { id: 'n2', name: 'Kapila Theertham Junction', lat: 13.6465, lng: 79.4180, trafficLight: 'red', lightTimer: 5 },
+    { id: 'n3', name: 'Leela Mahal Circle', lat: 13.6355, lng: 79.4260, trafficLight: 'green', lightTimer: 6 },
+    { id: 'n4', name: 'Tirupati RTC Bus Stand', lat: 13.6255, lng: 79.4190, trafficLight: 'red', lightTimer: 10 },
+    { id: 'n5', name: 'Tirupati Railway Station', lat: 13.6276, lng: 79.4208, trafficLight: 'green', lightTimer: 4 },
+    { id: 'n6', name: 'Ramanuja Circle', lat: 13.6253, lng: 79.4312, trafficLight: 'red', lightTimer: 7 },
+    { id: 'n7', name: 'SV University Campus', lat: 13.6280, lng: 79.4020, trafficLight: 'green', lightTimer: 6 },
+    { id: 'n8', name: 'Karakambadi Road Junction', lat: 13.6470, lng: 79.4420, trafficLight: 'red', lightTimer: 9 },
+    { id: 'n9', name: 'Srinivasam Complex Hub', lat: 13.6265, lng: 79.4255, trafficLight: 'green', lightTimer: 8 }
   ],
   edges: [
-    { id: 'e1', source: 'n9', target: 'n2', distance: 800, traffic: 'clear', speedLimit: 50, lanes: 2 },
-    { id: 'e2', source: 'n2', target: 'n1', distance: 700, traffic: 'clear', speedLimit: 50, lanes: 2 },
-    { id: 'e3', source: 'n1', target: 'n3', distance: 1100, traffic: 'moderate', speedLimit: 40, lanes: 2 },
-    { id: 'e4', source: 'n3', target: 'n6', distance: 1600, traffic: 'clear', speedLimit: 50, lanes: 3 },
-    { id: 'e5', source: 'n6', target: 'n8', distance: 600, traffic: 'heavy', speedLimit: 40, lanes: 1 },
-    { id: 'e6', source: 'n8', target: 'n5', distance: 1600, traffic: 'clear', speedLimit: 50, lanes: 2 },
-    { id: 'e7', source: 'n5', target: 'n7', distance: 600, traffic: 'jammed', speedLimit: 50, lanes: 2 },
-    { id: 'e8', source: 'n7', target: 'n4', distance: 1800, traffic: 'clear', speedLimit: 40, lanes: 2 },
-    { id: 'e9', source: 'n4', target: 'n9', distance: 1800, traffic: 'clear', speedLimit: 60, lanes: 3 },
-    { id: 'e10', source: 'n1', target: 'n5', distance: 2200, traffic: 'clear', speedLimit: 50, lanes: 2 },
-    { id: 'e11', source: 'n2', target: 'n5', distance: 2900, traffic: 'heavy', speedLimit: 60, lanes: 2 },
-    { id: 'e12', source: 'n3', target: 'n5', distance: 1700, traffic: 'clear', speedLimit: 50, lanes: 2 },
-    { id: 'e13', source: 'n4', target: 'n5', distance: 1600, traffic: 'clear', speedLimit: 50, lanes: 2 },
-    { id: 'e14', source: 'n6', target: 'n5', distance: 1400, traffic: 'moderate', speedLimit: 45, lanes: 2 },
-    { id: 'e15', source: 'n1', target: 'n4', distance: 600, traffic: 'clear', speedLimit: 40, lanes: 2 },
-    { id: 'e16', source: 'n3', target: 'n4', distance: 1000, traffic: 'clear', speedLimit: 40, lanes: 2 }
+    { id: 'e1', source: 'n9', target: 'n2', distance: 2300, traffic: 'clear', speedLimit: 50, lanes: 2 },
+    { id: 'e2', source: 'n2', target: 'n1', distance: 1900, traffic: 'clear', speedLimit: 50, lanes: 2 },
+    { id: 'e3', source: 'n1', target: 'n3', distance: 3200, traffic: 'moderate', speedLimit: 40, lanes: 2 },
+    { id: 'e4', source: 'n3', target: 'n6', distance: 1200, traffic: 'clear', speedLimit: 50, lanes: 3 },
+    { id: 'e5', source: 'n6', target: 'n8', distance: 2600, traffic: 'heavy', speedLimit: 40, lanes: 1 },
+    { id: 'e6', source: 'n8', target: 'n5', distance: 3100, traffic: 'clear', speedLimit: 50, lanes: 2 },
+    { id: 'e7', source: 'n5', target: 'n7', distance: 2000, traffic: 'jammed', speedLimit: 50, lanes: 2 },
+    { id: 'e8', source: 'n7', target: 'n4', distance: 1850, traffic: 'clear', speedLimit: 40, lanes: 2 },
+    { id: 'e9', source: 'n4', target: 'n9', distance: 700, traffic: 'clear', speedLimit: 60, lanes: 3 },
+    { id: 'e10', source: 'n1', target: 'n5', distance: 3300, traffic: 'clear', speedLimit: 50, lanes: 2 },
+    { id: 'e11', source: 'n2', target: 'n5', distance: 2100, traffic: 'heavy', speedLimit: 60, lanes: 2 },
+    { id: 'e12', source: 'n3', target: 'n5', distance: 1000, traffic: 'clear', speedLimit: 50, lanes: 2 },
+    { id: 'e13', source: 'n4', target: 'n5', distance: 300, traffic: 'clear', speedLimit: 50, lanes: 2 },
+    { id: 'e14', source: 'n6', target: 'n5', distance: 1100, traffic: 'moderate', speedLimit: 45, lanes: 2 },
+    { id: 'e15', source: 'n1', target: 'n4', distance: 3400, traffic: 'clear', speedLimit: 40, lanes: 2 },
+    { id: 'e16', source: 'n3', target: 'n4', distance: 1300, traffic: 'clear', speedLimit: 40, lanes: 2 }
   ]
 };
 
-const streetPrefixes = ['Pine', 'Oak', 'Maple', 'Cedar', 'Elm', 'Sunset', 'Grand', 'Lexington', 'Broadway', 'Central', 'Park', 'Industrial', 'Harbor'];
-const streetSuffixes = ['Avenue', 'Blvd', 'Street', 'Crossing', 'Square', 'Way', 'Junction', 'Hub'];
+const streetPrefixes = ['Alipiri', 'Kapila', 'Bypass', 'University', 'Station', 'RTC', 'Karakambadi', 'Ramanuja', 'Srinivasam', 'LeelaMahal', 'SV', 'Renigunta', 'Tirumala'];
+const streetSuffixes = ['Road', 'Circle', 'Bypass', 'Junction', 'Hub', 'Way', 'Flyover'];
 
 export default function App() {
-  const [view, setView] = useState('landing'); // 'landing', 'app', 'presets', 'guide'
+  const [view, setView] = useState('app'); // 'app', 'presets', 'guide'
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -74,8 +73,50 @@ export default function App() {
   const [algorithm, setAlgorithm] = useState('traffic');
   const [simulationSpeed, setSimulationSpeed] = useState(1);
   const [apiError, setApiError] = useState(null);
-  const [mapTheme, setMapTheme] = useState('dark');
+  const [mapTheme, setMapTheme] = useState('light');
   const [toasts, setToasts] = useState([]);
+  const [weather, setWeather] = useState('sunny'); // 'sunny', 'rain'
+  const [activeEvent, setActiveEvent] = useState('none'); // 'none', 'festival', 'vip'
+  const [incidentActive, setIncidentActive] = useState(false);
+  const [raceState, setRaceState] = useState('idle');
+  const [globalGreenTime, setGlobalGreenTime] = useState(15);
+  const [globalRedTime, setGlobalRedTime] = useState(20);
+
+  const [sectorsList, setSectorsList] = useState([
+    { id: 'tirupati', name: 'Tirupati', country: 'India', center: [13.628, 79.419] }
+  ]);
+  const [activeSector, setActiveSector] = useState('tirupati');
+  const [mapCenter, setMapCenter] = useState([13.628, 79.419]);
+
+  const [dashboardTheme, setDashboardTheme] = useState('light');
+
+  useEffect(() => {
+    if (dashboardTheme === 'dark') {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+  }, [dashboardTheme]);
+
+  const dispatchMessages = [
+    "Officer Rao: Pilgrims queuing near Alipiri Toll Gate, traffic crawling.",
+    "Dispatch: VIP convoy cleared Kapila Theertham. Signals synced to green waves.",
+    "Sensors: Heavy rush near Srinivasam Complex, delay expected.",
+    "Traffic Radio: Minor block at Ramanuja Circle. Speed reduced.",
+    "Officer Naidu: Flower stalls blocking pathway near Railway Station.",
+    "Dispatch: RTC buses queuing near Tirupati Bus Stand.",
+    "System: Routing algorithm recalibrated. Dijkstra execution time: 0.08ms."
+  ];
+  
+  const [dispatchLog, setDispatchLog] = useState("CONSOLE: TMD operational deck online. Monitoring Tirupati grid...");
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const msg = dispatchMessages[Math.floor(Math.random() * dispatchMessages.length)];
+      setDispatchLog(`DISPATCH LOG: ${msg}`);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Toast notification helper
   const showToast = (message, type = 'info') => {
@@ -103,7 +144,51 @@ export default function App() {
     }
   };
 
+  const fetchSectors = async () => {
+    try {
+      const response = await fetch('/api/sectors');
+      if (response.ok) {
+        const data = await response.json();
+        setSectorsList(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch sectors list:', err);
+    }
+  };
+
+  const handleSectorChange = async (sectorId) => {
+    showToast(`Loading ${sectorId.toUpperCase()} sector grid...`, 'info');
+    try {
+      const response = await fetch('/api/sector', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectorId })
+      });
+      if (!response.ok) throw new Error('Switch sector API failed');
+      const data = await response.json();
+      
+      setActiveSector(data.sectorId);
+      setMapCenter(data.center);
+      setNodes(data.map.nodes);
+      setEdges(data.map.edges);
+      
+      // Clear navigation states
+      setSelectedNode(null);
+      setStartNode(null);
+      setEndNode(null);
+      handleClearRoute();
+      setMstEdges([]);
+      
+      setDispatchLog(`DISPATCH LOG: Sector switched to ${data.sectorId.toUpperCase()}. Traffic control deck initialized.`);
+      showToast(`Loaded ${data.sectorId.toUpperCase()} grid successfully`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Could not load sector grid.', 'error');
+    }
+  };
+
   useEffect(() => {
+    fetchSectors();
     fetchMap();
   }, []);
 
@@ -289,6 +374,24 @@ export default function App() {
     setVisitedNodes([]);
   };
 
+  const handleToggleIncident = async (active) => {
+    setIncidentActive(active);
+    showToast(active ? '🚧 Incident triggered at Wall Street Junction!' : '🟢 Incident cleared. Normal lanes restored.', active ? 'error' : 'success');
+    
+    const updatedEdges = edges.map(edge => {
+      if (edge.id === 'e2') {
+        return { ...edge, traffic: active ? 'jammed' : 'clear' };
+      }
+      return edge;
+    });
+    
+    await saveMap(nodes, updatedEdges);
+    
+    if (startNode && endNode) {
+      handleFindRoute(algorithm, startNode, endNode);
+    }
+  };
+
   // Inject Random Traffic Bottlenecks
   const handleTriggerRandomJams = () => {
     showToast('Simulating traffic bottlenecks...', 'info');
@@ -348,11 +451,14 @@ export default function App() {
     }
   };
 
-  // Main Conditional View Render
-  if (view === 'landing') {
-    return <LandingPage onLaunch={() => setView('app')} />;
-  }
+  const getCongestionIndex = () => {
+    if (edges.length === 0) return 0;
+    const congestedCount = edges.filter(e => e.traffic === 'heavy' || e.traffic === 'jammed').length;
+    return Math.round((congestedCount / edges.length) * 100);
+  };
+  const congestionIndex = getCongestionIndex();
 
+  // Main Conditional View Render
   if (view === 'presets') {
     return (
       <PresetsPage
@@ -391,10 +497,9 @@ export default function App() {
     }}>
       {/* 1. APP HEADER NAVIGATION BAR (Sleek telemetry command bar) */}
       <header style={{
-        background: 'rgba(8, 12, 24, 0.9)',
-        backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid var(--border-glass)',
-        padding: '14px 24px',
+        background: 'var(--bg-secondary)',
+        borderBottom: '1px solid var(--border-clean)',
+        padding: '12px 24px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -402,10 +507,10 @@ export default function App() {
       }}>
         {/* Logo and Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setView('landing')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setView('app')}>
             <span style={{ fontSize: '1.4rem' }}>🚦</span>
-            <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.25rem' }}>
-              Urban<span style={{ color: 'var(--accent-cyan)' }}>Pulse</span>
+            <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.15rem', color: 'var(--color-text-primary)' }}>
+              Traffic Monitor Deck <span style={{ color: 'var(--accent-blue)', fontWeight: 500, fontSize: '0.82rem', fontFamily: 'monospace', marginLeft: '4px' }}>[TMD-v1.4]</span>
             </span>
           </div>
 
@@ -415,52 +520,80 @@ export default function App() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '5px',
-              background: 'rgba(16, 185, 129, 0.08)',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
-              borderRadius: '20px',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              borderRadius: '4px',
               padding: '2px 8px',
               fontSize: '0.62rem',
-              color: '#34d399',
+              color: 'var(--color-text-secondary)',
               fontFamily: 'monospace',
               fontWeight: 700
             }}>
-              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#10b981' }} />
+              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#64748b' }} />
               CONSOLE: OK
             </span>
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '5px',
-              background: apiError ? 'rgba(245, 158, 11, 0.08)' : 'rgba(6, 182, 212, 0.08)',
-              border: apiError ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(6, 182, 212, 0.2)',
-              borderRadius: '20px',
+              background: apiError ? '#fef2f2' : '#dcfce7',
+              border: apiError ? '1px solid #fca5a5' : '1px solid #bbf7d0',
+              borderRadius: '4px',
               padding: '2px 8px',
               fontSize: '0.62rem',
-              color: apiError ? '#fbbf24' : 'var(--accent-cyan)',
+              color: apiError ? '#991b1b' : '#16a34a',
               fontFamily: 'monospace',
               fontWeight: 700
             }}>
-              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: apiError ? '#fbbf24' : 'var(--accent-cyan)' }} />
+              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: apiError ? '#dc2626' : '#16a34a' }} />
               OSRM FEED: {apiError ? 'FALLBACK' : 'LIVE'}
             </span>
+          </div>
+
+          {/* Sector selection dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-secondary)', letterSpacing: '0.05em' }}>SECTOR:</span>
+            <select
+              value={activeSector}
+              onChange={(e) => handleSectorChange(e.target.value)}
+              style={{
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                borderRadius: '4px',
+                border: '1px solid var(--border-clean)',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--color-text-primary)',
+                cursor: 'pointer',
+                outline: 'none',
+                height: 'auto'
+              }}
+            >
+              {sectorsList.map(sec => (
+                <option key={sec.id} value={sec.id}>
+                  📍 {sec.name} ({sec.country})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
         {/* Tab Buttons */}
-        <nav style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
+        <nav style={{ display: 'flex', gap: '4px', background: 'var(--bg-primary)', padding: '3px', borderRadius: '6px', border: '1px solid var(--border-clean)' }}>
           <button 
             onClick={() => setView('app')} 
             style={{ 
-              background: view === 'app' ? 'rgba(6, 182, 212, 0.08)' : 'transparent', 
-              border: 'none', 
-              color: view === 'app' ? 'var(--accent-cyan)' : '#94a3b8', 
+              background: view === 'app' ? 'var(--bg-secondary)' : 'transparent', 
+              border: view === 'app' ? '1px solid var(--border-clean)' : 'none', 
+              color: view === 'app' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', 
               fontWeight: 700, 
               cursor: 'pointer',
-              fontSize: '0.8rem',
-              padding: '6px 16px',
-              borderRadius: '6px',
+              fontSize: '0.78rem',
+              padding: '6px 14px',
+              borderRadius: '4px',
               outline: 'none',
-              transition: 'all 0.2s ease'
+              boxShadow: view === 'app' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              transition: 'all 0.15s ease'
             }}
           >
             🌐 Live Map
@@ -468,16 +601,17 @@ export default function App() {
           <button 
             onClick={() => setView('presets')} 
             style={{ 
-              background: view === 'presets' ? 'rgba(6, 182, 212, 0.08)' : 'transparent', 
-              border: 'none', 
-              color: view === 'presets' ? 'var(--accent-cyan)' : '#94a3b8', 
+              background: view === 'presets' ? 'var(--bg-secondary)' : 'transparent', 
+              border: view === 'presets' ? '1px solid var(--border-clean)' : 'none', 
+              color: view === 'presets' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', 
               fontWeight: 700, 
               cursor: 'pointer',
-              fontSize: '0.8rem',
-              padding: '6px 16px',
-              borderRadius: '6px',
+              fontSize: '0.78rem',
+              padding: '6px 14px',
+              borderRadius: '4px',
               outline: 'none',
-              transition: 'all 0.2s ease'
+              boxShadow: view === 'presets' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              transition: 'all 0.15s ease'
             }}
           >
             🗺️ Templates
@@ -485,22 +619,44 @@ export default function App() {
           <button 
             onClick={() => setView('guide')} 
             style={{ 
-              background: view === 'guide' ? 'rgba(6, 182, 212, 0.08)' : 'transparent', 
-              border: 'none', 
-              color: view === 'guide' ? 'var(--accent-cyan)' : '#94a3b8', 
+              background: view === 'guide' ? 'var(--bg-secondary)' : 'transparent', 
+              border: view === 'guide' ? '1px solid var(--border-clean)' : 'none', 
+              color: view === 'guide' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', 
               fontWeight: 700, 
               cursor: 'pointer',
-              fontSize: '0.8rem',
-              padding: '6px 16px',
-              borderRadius: '6px',
+              fontSize: '0.78rem',
+              padding: '6px 14px',
+              borderRadius: '4px',
               outline: 'none',
-              transition: 'all 0.2s ease'
+              boxShadow: view === 'guide' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              transition: 'all 0.15s ease'
             }}
           >
             📖 Guide
           </button>
         </nav>
       </header>
+
+      {/* Telemetry Ticker Marquee */}
+      <div className="ticker-wrap">
+        <div className="ticker-content">
+          <span className="ticker-item">🚦 <strong>SYSTEM STATUS:</strong> ACTIVE MONITORING</span>
+          <span className="ticker-item">🚘 <strong>CONGESTION INDEX:</strong> {congestionIndex}%</span>
+          <span className="ticker-item">🎙️ <strong>DISPATCH DECK:</strong> {dispatchLog}</span>
+          <span className="ticker-item">🌤️ <strong>WEATHER CONDITION:</strong> {weather.toUpperCase()}</span>
+          <span className="ticker-item">🎪 <strong>CIVIC STATE:</strong> {activeEvent === 'none' ? 'NORMAL OPERATIONS' : activeEvent.toUpperCase()}</span>
+          <span className="ticker-item">📍 <strong>INTERSECTIONS:</strong> {nodes.length}</span>
+          <span className="ticker-item">🛣️ <strong>STREET LANES:</strong> {edges.length}</span>
+          
+          <span className="ticker-item">🚦 <strong>SYSTEM STATUS:</strong> ACTIVE MONITORING</span>
+          <span className="ticker-item">🚘 <strong>CONGESTION INDEX:</strong> {congestionIndex}%</span>
+          <span className="ticker-item">🎙️ <strong>DISPATCH DECK:</strong> {dispatchLog}</span>
+          <span className="ticker-item">🌤️ <strong>WEATHER CONDITION:</strong> {weather.toUpperCase()}</span>
+          <span className="ticker-item">🎪 <strong>CIVIC STATE:</strong> {activeEvent === 'none' ? 'NORMAL OPERATIONS' : activeEvent.toUpperCase()}</span>
+          <span className="ticker-item">📍 <strong>INTERSECTIONS:</strong> {nodes.length}</span>
+          <span className="ticker-item">🛣️ <strong>STREET LANES:</strong> {edges.length}</span>
+        </div>
+      </div>
 
       {/* Top Banner Alert (API offline check) */}
       {apiError && (
@@ -574,10 +730,22 @@ export default function App() {
               onDeleteEdge={handleDeleteEdge}
               onNodeDrag={handleNodeDrag}
               mapTheme={mapTheme}
-              onToggleTheme={() => {
-                const newTheme = mapTheme === 'dark' ? 'light' : 'dark';
-                setMapTheme(newTheme);
-                showToast(`Switched to ${newTheme === 'dark' ? 'Dark Mode' : 'Light Mode'} tiles`, 'success');
+              onToggleTheme={(theme) => {
+                setMapTheme(theme);
+              }}
+              weather={weather}
+              activeEvent={activeEvent}
+              incidentActive={incidentActive}
+              raceState={raceState}
+              setRaceState={setRaceState}
+              globalGreenTime={globalGreenTime}
+              globalRedTime={globalRedTime}
+              mapCenter={mapCenter}
+              dashboardTheme={dashboardTheme}
+              onToggleDashboardTheme={() => {
+                const newTheme = dashboardTheme === 'dark' ? 'light' : 'dark';
+                setDashboardTheme(newTheme);
+                showToast(`Switched dashboard to ${newTheme === 'dark' ? 'Dark Operations' : 'Light Municipal'} theme`, 'success');
               }}
             />
           </div>
@@ -615,7 +783,20 @@ export default function App() {
             onClearMST={handleClearMST}
             onResetMap={handleResetMap}
             isMstActive={mstEdges.length > 0}
-            onGoBack={() => setView('landing')}
+            onGoBack={null}
+            weather={weather}
+            setWeather={setWeather}
+            activeEvent={activeEvent}
+            setActiveEvent={setActiveEvent}
+            showToast={showToast}
+            incidentActive={incidentActive}
+            onToggleIncident={handleToggleIncident}
+            raceState={raceState}
+            setRaceState={setRaceState}
+            globalGreenTime={globalGreenTime}
+            setGlobalGreenTime={setGlobalGreenTime}
+            globalRedTime={globalRedTime}
+            setGlobalRedTime={setGlobalRedTime}
           />
         </div>
 
