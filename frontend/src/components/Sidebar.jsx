@@ -8,6 +8,8 @@ export default function Sidebar({
   endNode,
   activeRoute,
   mode,
+  algorithm,
+  setAlgorithm,
   simulationSpeed,
   setMode,
   setStartNode,
@@ -24,7 +26,22 @@ export default function Sidebar({
   onGoBack // Trigger transition back to Landing page
 }) {
   const [activeTab, setActiveTab] = useState('navigation');
-  const [algorithm, setAlgorithm] = useState('traffic');
+
+  const formatDistance = (m) => {
+    if (m >= 1000) {
+      return (m / 1000).toFixed(2) + ' km';
+    }
+    return Math.round(m) + ' m';
+  };
+
+  const formatDuration = (s) => {
+    const mins = Math.floor(s / 60);
+    const secs = Math.round(s % 60);
+    if (mins > 0) {
+      return `${mins} min ${secs} sec`;
+    }
+    return `${secs} sec`;
+  };
 
   // Congestion index calculation (percentage of edges that are heavy or jammed)
   const getCongestionIndex = () => {
@@ -104,7 +121,7 @@ export default function Sidebar({
         {/* 1. NAVIGATION/DIRECTIONS TAB */}
         {activeTab === 'navigation' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontSize: '1rem', color: '#f8fafc' }}>Smart Navigation Engine</h3>
+            <h3 style={{ fontSize: '1rem', color: '#f8fafc' }}>Traffic Navigation Engine</h3>
             
             {/* Start Node Selection */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -148,7 +165,7 @@ export default function Sidebar({
                 onChange={(e) => setAlgorithm(e.target.value)}
                 style={{ width: '100%' }}
               >
-                <option value="traffic">Intelligent Congestion-Dodging Route</option>
+                <option value="traffic">Dynamic Congestion-Dodging Route</option>
                 <option value="dijkstra">Traditional Shortest Distance Route</option>
                 <option value="astar">Direct Eco-Scenic Route</option>
                 <option value="osrm">Real-World OSRM Street Route</option>
@@ -176,27 +193,58 @@ export default function Sidebar({
 
             {/* Route Stats Result Display (non-technical renames) */}
             {activeRoute && (
-              <div className="glass-panel" style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <h4 style={{ fontSize: '0.85rem', color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Route Summary
+              <div 
+                key={activeRoute.totalCost}
+                className="metric-summary-container" 
+                style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}
+              >
+                <h4 style={{ fontSize: '0.85rem', color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>
+                  Trip Analytics
                 </h4>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#64748b' }}>Route Priority:</span>
-                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>
-                    {algorithm === 'traffic' ? 'Congestion-Dodging' : (algorithm === 'dijkstra' ? 'Traditional Shortest' : (algorithm === 'astar' ? 'Direct Eco-Scenic' : 'Real-World OSRM'))}
-                  </span>
+
+                {/* Primary priority indicator */}
+                <div className="metric-card" style={{ padding: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>🧭</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span className="metric-label">Route Mode</span>
+                      <span className="metric-value" style={{ fontSize: '0.88rem', color: '#c084fc' }}>
+                        {algorithm === 'traffic' ? 'Dynamic Traffic-Aware' : (algorithm === 'dijkstra' ? 'Shortest Path' : (algorithm === 'astar' ? 'Eco-Scenic' : 'OSRM Real-World'))}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#64748b' }}>Intersections Visited:</span>
-                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>
-                    {activeRoute.path ? activeRoute.path.length : 0}
-                  </span>
+
+                {/* 2-column metrics display */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="metric-card">
+                    <span className="metric-icon">🛣️</span>
+                    <div className="metric-details">
+                      <span className="metric-label">Distance</span>
+                      <span className="metric-value">
+                        {activeRoute.totalCost ? formatDistance(activeRoute.totalCost) : '0 m'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card">
+                    <span className="metric-icon">⏱️</span>
+                    <div className="metric-details">
+                      <span className="metric-label">Travel Time</span>
+                      <span className="metric-value" style={{ color: 'var(--traffic-clear)' }}>
+                        {formatDuration(activeRoute.duration || (activeRoute.totalCost ? activeRoute.totalCost / 11.11 : 0))}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#64748b' }}>Total Travel Distance:</span>
-                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>
-                    {activeRoute.totalCost ? Math.round(activeRoute.totalCost) : 0} meters
-                  </span>
+
+                <div className="metric-card" style={{ padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Intersections Transited:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      {activeRoute.path ? activeRoute.path.length : 0} nodes
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

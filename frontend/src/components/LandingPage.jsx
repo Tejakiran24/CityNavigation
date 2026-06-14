@@ -272,7 +272,7 @@ export default function LandingPage({ onLaunch }) {
           }}>
             {[
               {
-                title: "Intelligent Congestion-Dodging",
+                title: "Dynamic Congestion-Dodging",
                 color: "#10b981",
                 desc: "Calculates live travel delays based on speed limits and current gridlock levels, routing cars to clear streets."
               },

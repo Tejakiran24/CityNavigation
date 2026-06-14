@@ -318,3 +318,140 @@ input:focus, select:focus {
 .floating-orb-3 {
   animation: float-fast 14s infinite ease-in-out;
 }
+
+/* Premium Route Directional Flow Animation and Neon Glow */
+@keyframes active-route-pulse {
+  to {
+    stroke-dashoffset: -25px;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 0.95; }
+}
+
+.active-route-flow {
+  stroke-dasharray: 10, 15;
+  animation: active-route-pulse 0.8s linear infinite, fade-in 0.4s ease-out forwards;
+  filter: drop-shadow(0 0 3px #f43f5e) drop-shadow(0 0 6px rgba(244, 63, 94, 0.8));
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Tactile dragging feedback for Start/End map pins */
+.dragging-pin {
+  transform: scale(1.35) !important;
+  box-shadow: 0 0 15px var(--accent-purple) !important;
+  border-color: #ffffff !important;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+  animation: drag-pulse 1s infinite alternate ease-in-out;
+}
+
+@keyframes drag-pulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.2) drop-shadow(0 0 5px var(--accent-purple)); }
+}
+
+/* Contextual Toast Notification styles */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-message {
+  background: rgba(10, 17, 32, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  padding: 12px 24px;
+  border-radius: 12px;
+  color: #f8fafc;
+  font-size: 0.88rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  animation: toast-in-out 3.5s ease-in-out forwards;
+}
+
+.toast-success {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.toast-error {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.toast-info {
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+@keyframes toast-in-out {
+  0% { transform: translateY(-30px); opacity: 0; }
+  10% { transform: translateY(0); opacity: 1; }
+  90% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-30px); opacity: 0; }
+}
+
+/* Professional Metric Cards */
+.metric-summary-container {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.metric-card {
+  background: rgba(10, 17, 32, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.metric-card:hover {
+  border-color: var(--border-focus);
+}
+
+.metric-icon {
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-family: 'Outfit', sans-serif;
+  margin-top: 1px;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}

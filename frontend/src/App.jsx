@@ -71,8 +71,20 @@ export default function App() {
   const [mstEdges, setMstEdges] = useState([]);
   
   const [mode, setMode] = useState('select'); // 'select', 'add-node', 'add-edge', 'delete'
+  const [algorithm, setAlgorithm] = useState('traffic');
   const [simulationSpeed, setSimulationSpeed] = useState(1);
   const [apiError, setApiError] = useState(null);
+  const [mapTheme, setMapTheme] = useState('dark');
+  const [toasts, setToasts] = useState([]);
+
+  // Toast notification helper
+  const showToast = (message, type = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3500);
+  };
 
   // Fetch current map from backend
   const fetchMap = async () => {
@@ -191,19 +203,23 @@ export default function App() {
   };
 
   // Calculate route using API
-  const handleFindRoute = async (algorithm) => {
-    if (!startNode || !endNode) return;
+  const handleFindRoute = async (algParam, customStart = null, customEnd = null) => {
+    const activeAlg = algParam || algorithm;
+    const start = customStart || startNode;
+    const end = customEnd || endNode;
+    if (!start || !end) return;
     
     setMstEdges([]);
+    showToast('Calculating route...', 'info');
 
     try {
       const response = await fetch('/api/route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startNodeId: startNode.id,
-          endNodeId: endNode.id,
-          algorithm
+          startNodeId: start.id,
+          endNodeId: end.id,
+          algorithm: activeAlg
         })
       });
 
@@ -211,6 +227,7 @@ export default function App() {
       const data = await response.json();
       
       if (!data.path || data.path.length === 0) {
+        showToast('No path exists between these two points.', 'error');
         alert('No path exists between these two intersections.');
         handleClearRoute();
         return;
@@ -220,12 +237,50 @@ export default function App() {
         path: data.path,
         pathEdges: data.pathEdges,
         totalCost: data.totalCost,
+        duration: data.duration, // Pass duration to frontend state
         geometry: data.geometry
       });
       setVisitedNodes(data.visited);
+      showToast('Route calculated successfully!', 'success');
     } catch (err) {
       console.warn('API route failed:', err);
+      showToast('Routing engine connection failed.', 'error');
       alert('Routing engine connection failed. Please check if the backend is running.');
+    }
+  };
+
+  // Handle node drag coordinate updates and clear connected edge geometries
+  const handleNodeDrag = async (nodeId, newCoords) => {
+    showToast('Recalculating route...', 'info');
+    // Update node coordinates in local nodes array
+    const updatedNodes = nodes.map(n => n.id === nodeId ? { ...n, lat: newCoords.lat, lng: newCoords.lng } : n);
+    
+    // Clear geometries of edges connected to this node so OSRM geometries re-hydrate correctly
+    const updatedEdges = edges.map(e => {
+      if (e.source === nodeId || e.target === nodeId) {
+        return { ...e, geometry: null };
+      }
+      return e;
+    });
+
+    // Keep startNode and endNode references updated if they are the dragged node
+    let updatedStart = startNode;
+    let updatedEnd = endNode;
+    if (startNode?.id === nodeId) {
+      updatedStart = { ...startNode, lat: newCoords.lat, lng: newCoords.lng };
+      setStartNode(updatedStart);
+    }
+    if (endNode?.id === nodeId) {
+      updatedEnd = { ...endNode, lat: newCoords.lat, lng: newCoords.lng };
+      setEndNode(updatedEnd);
+    }
+
+    // Save mapping changes to backend to trigger re-hydration and database sync
+    await saveMap(updatedNodes, updatedEdges);
+
+    // Instantly recalculate route if active
+    if (activeRoute) {
+      handleFindRoute(algorithm, updatedStart, updatedEnd);
     }
   };
 
@@ -236,6 +291,7 @@ export default function App() {
 
   // Inject Random Traffic Bottlenecks
   const handleTriggerRandomJams = () => {
+    showToast('Simulating traffic bottlenecks...', 'info');
     const levels = ['clear', 'moderate', 'heavy', 'jammed'];
     const updatedEdges = edges.map(edge => {
       if (Math.random() < 0.35) {
@@ -250,6 +306,7 @@ export default function App() {
 
   // Clear all traffic levels back to clear
   const handleResetTraffic = () => {
+    showToast('Traffic congestions cleared', 'success');
     const updatedEdges = edges.map(edge => ({ ...edge, traffic: 'clear' }));
     saveMap(nodes, updatedEdges);
     handleClearRoute();
@@ -258,20 +315,24 @@ export default function App() {
   // Calculate Minimum Spanning Tree (MST)
   const handleCalculateMST = async () => {
     handleClearRoute();
+    showToast('Designing optimal grid backbone...', 'info');
 
     try {
       const response = await fetch('/api/mst');
       if (!response.ok) throw new Error('MST computation error');
       const data = await response.json();
       setMstEdges(data.mstEdges);
+      showToast('Optimal grid backbone synced!', 'success');
     } catch (err) {
       console.error('MST calculation error:', err);
+      showToast('MST calculation failed.', 'error');
       alert('MST service unavailable. Make sure backend is running.');
     }
   };
 
   const handleClearMST = () => {
     setMstEdges([]);
+    showToast('Grid backbone cleared', 'info');
   };
 
   // Reset entire map back to initial seeds
@@ -283,6 +344,7 @@ export default function App() {
       setStartNode(null);
       setEndNode(null);
       saveMap(DEFAULT_MAP.nodes, DEFAULT_MAP.edges);
+      showToast('Map reset to default grid', 'success');
     }
   };
 
@@ -463,6 +525,13 @@ export default function App() {
               onAddRoad={handleAddRoad}
               onDeleteNode={handleDeleteNode}
               onDeleteEdge={handleDeleteEdge}
+              onNodeDrag={handleNodeDrag}
+              mapTheme={mapTheme}
+              onToggleTheme={() => {
+                const newTheme = mapTheme === 'dark' ? 'light' : 'dark';
+                setMapTheme(newTheme);
+                showToast(`Switched to ${newTheme === 'dark' ? 'Dark Mode' : 'Light Mode'} tiles`, 'success');
+              }}
             />
           </div>
           
@@ -484,6 +553,8 @@ export default function App() {
             endNode={endNode}
             activeRoute={activeRoute}
             mode={mode}
+            algorithm={algorithm}
+            setAlgorithm={setAlgorithm}
             simulationSpeed={simulationSpeed}
             setMode={setMode}
             setStartNode={setStartNode}
@@ -502,6 +573,20 @@ export default function App() {
         </div>
 
       </div>
+
+      {/* Toast notifications display */}
+      {toasts.length > 0 && (
+        <div className="toast-container">
+          {toasts.map(toast => (
+            <div key={toast.id} className={`toast-message toast-${toast.type}`}>
+              <span className="toast-icon">
+                {toast.type === 'error' ? '❌' : (toast.type === 'success' ? '✅' : 'ℹ️')}
+              </span>
+              <span>{toast.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -98,8 +98,9 @@ async function getOSRMRoute(src, dest) {
   const data = await res.json();
   if (data.code === 'Ok' && data.routes && data.routes[0]) {
     const distance = Math.round(data.routes[0].distance);
+    const duration = Math.round(data.routes[0].duration); // in seconds
     const geometry = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-    return { distance, geometry };
+    return { distance, duration, geometry };
   }
   throw new Error('No route found by OSRM');
 }
@@ -196,6 +197,7 @@ router.post('/route', async (req, res) => {
         path: [startNodeId, endNodeId],
         pathEdges: [],
         totalCost: roadData.distance,
+        duration: roadData.duration,
         geometry: roadData.geometry,
         visited: [startNodeId, endNodeId]
       });

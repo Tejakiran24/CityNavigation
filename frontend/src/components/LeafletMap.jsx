@@ -17,7 +17,10 @@ export default function LeafletMap({
   onNodeSelect,
   onAddRoad,
   onDeleteNode,
-  onDeleteEdge
+  onDeleteEdge,
+  onNodeDrag,
+  mapTheme,
+  onToggleTheme
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -36,6 +39,25 @@ export default function LeafletMap({
   const trafficLightsRef = useRef({}); // { nodeId: { color, timer, maxTimer } }
   const [edgeStartNode, setEdgeStartNode] = useState(null);
 
+  const tileLayerRef = useRef(null);
+
+  // Dynamic tile switching effect based on mapTheme
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+    }
+
+    const tileUrl = mapTheme === 'light'
+      ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+    tileLayerRef.current = L.tileLayer(tileUrl, {
+      maxZoom: 20
+    }).addTo(mapRef.current);
+  }, [mapTheme]);
+
   // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -47,11 +69,6 @@ export default function LeafletMap({
       zoomControl: false,
       attributionControl: false
     });
-
-    // Dark-themed tiles from CartoDB
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20
-    }).addTo(mapRef.current);
 
     // Add overlay groups to map
     edgesGroupRef.current.addTo(mapRef.current);
@@ -241,7 +258,37 @@ export default function LeafletMap({
         iconAnchor: [13, 13]
       });
 
-      const marker = L.marker([node.lat, node.lng], { icon });
+      const isDraggable = !!(isStart || isEnd);
+      const marker = L.marker([node.lat, node.lng], {
+        icon,
+        draggable: isDraggable
+      });
+
+      if (isDraggable) {
+        marker.on('dragstart', (e) => {
+          const el = e.target.getElement();
+          if (el) {
+            const innerNode = el.querySelector('.node-traffic-light');
+            if (innerNode) {
+              innerNode.classList.add('dragging-pin');
+            }
+          }
+        });
+
+        marker.on('dragend', (e) => {
+          const el = e.target.getElement();
+          if (el) {
+            const innerNode = el.querySelector('.node-traffic-light');
+            if (innerNode) {
+              innerNode.classList.remove('dragging-pin');
+            }
+          }
+          const newLatLng = e.target.getLatLng();
+          if (onNodeDrag) {
+            onNodeDrag(node.id, { lat: newLatLng.lat, lng: newLatLng.lng });
+          }
+        });
+      }
 
       marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
@@ -314,33 +361,24 @@ export default function LeafletMap({
       }
 
       if (latlngs.length > 0) {
+        // Underneath Layer: Thicker, darker shadow/border line
+        L.polyline(latlngs, {
+          color: '#0f0206',
+          weight: 12,
+          opacity: 0.8,
+          lineJoin: 'round',
+          lineCap: 'round'
+        }).addTo(routeGroupRef.current);
+
+        // Top Layer: Bright inner neon rose line with CSS-based directional flow animation
         L.polyline(latlngs, {
           color: '#f43f5e',
-          weight: 12,
-          opacity: 0.55,
-          lineJoin: 'round',
-          lineCap: 'round'
-        }).addTo(routeGroupRef.current);
-
-        const routeCore = L.polyline(latlngs, {
-          color: '#ffffff',
-          weight: 4,
+          weight: 5,
           opacity: 0.95,
-          dashArray: '10, 15',
           lineJoin: 'round',
-          lineCap: 'round'
+          lineCap: 'round',
+          className: 'active-route-flow'
         }).addTo(routeGroupRef.current);
-
-        let dashOffset = 0;
-        const animInterval = setInterval(() => {
-          dashOffset = (dashOffset - 1) % 25;
-          const el = routeCore.getElement();
-          if (el) {
-            el.style.strokeDashoffset = dashOffset + 'px';
-          }
-        }, 80);
-
-        return () => clearInterval(animInterval);
       }
     }
   }, [activeRoute, nodes, edges]);
@@ -684,6 +722,30 @@ export default function LeafletMap({
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)'; }}
         >
           🎯
+        </button>
+        <button
+          onClick={onToggleTheme}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '8px',
+            background: 'rgba(10, 17, 32, 0.9)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.15rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            transition: 'all 0.2s ease',
+            outline: 'none'
+          }}
+          title="Toggle Map Style"
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-purple)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(168,85,247,0.4)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)'; }}
+        >
+          {mapTheme === 'dark' ? '☀️' : '🌙'}
         </button>
       </div>
     </div>

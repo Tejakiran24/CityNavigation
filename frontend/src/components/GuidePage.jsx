@@ -75,9 +75,9 @@ export default function GuidePage({ onBack }) {
 
             {/* Traffic-Aware */}
             <div style={{ borderLeft: '4px solid #10b981', paddingLeft: '16px' }}>
-              <h4 style={{ color: '#f8fafc', fontSize: '0.95rem', marginBottom: '4px' }}>Intelligent Congestion-Dodging Route</h4>
+              <h4 style={{ color: '#f8fafc', fontSize: '0.95rem', marginBottom: '4px' }}>Dynamic Congestion-Dodging Route</h4>
               <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: '1.5' }}>
-                Our recommended smart routing. It calculates the live estimated travel time for every road block using the following traffic weight formula:
+                Our recommended traffic-aware routing. It calculates the live estimated travel time for every road block using the following traffic weight formula:
               </p>
               <div style={{
                 background: 'rgba(0,0,0,0.3)',
