@@ -389,68 +389,115 @@ export default function App() {
       backgroundColor: 'var(--bg-primary)',
       overflow: 'hidden'
     }}>
-      {/* 1. APP HEADER NAVIGATION BAR (Sleek multi page routing) */}
+      {/* 1. APP HEADER NAVIGATION BAR (Sleek telemetry command bar) */}
       <header style={{
-        background: 'rgba(10, 17, 32, 0.95)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(8, 12, 24, 0.9)',
+        backdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border-glass)',
-        padding: '12px 24px',
+        padding: '14px 24px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         zIndex: 2000
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setView('landing')}>
-          <span style={{ fontSize: '1.4rem' }}>🚦</span>
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.25rem' }}>
-            Urban<span style={{ color: '#a855f7' }}>Pulse</span>
-          </span>
+        {/* Logo and Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setView('landing')}>
+            <span style={{ fontSize: '1.4rem' }}>🚦</span>
+            <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.25rem' }}>
+              Urban<span style={{ color: 'var(--accent-cyan)' }}>Pulse</span>
+            </span>
+          </div>
+
+          {/* Telemetry feed status badges */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              borderRadius: '20px',
+              padding: '2px 8px',
+              fontSize: '0.62rem',
+              color: '#34d399',
+              fontFamily: 'monospace',
+              fontWeight: 700
+            }}>
+              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#10b981' }} />
+              CONSOLE: OK
+            </span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: apiError ? 'rgba(245, 158, 11, 0.08)' : 'rgba(6, 182, 212, 0.08)',
+              border: apiError ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(6, 182, 212, 0.2)',
+              borderRadius: '20px',
+              padding: '2px 8px',
+              fontSize: '0.62rem',
+              color: apiError ? '#fbbf24' : 'var(--accent-cyan)',
+              fontFamily: 'monospace',
+              fontWeight: 700
+            }}>
+              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: apiError ? '#fbbf24' : 'var(--accent-cyan)' }} />
+              OSRM FEED: {apiError ? 'FALLBACK' : 'LIVE'}
+            </span>
+          </div>
         </div>
-        <nav style={{ display: 'flex', gap: '24px' }}>
+
+        {/* Tab Buttons */}
+        <nav style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
           <button 
             onClick={() => setView('app')} 
             style={{ 
-              background: 'transparent', 
+              background: view === 'app' ? 'rgba(6, 182, 212, 0.08)' : 'transparent', 
               border: 'none', 
-              color: view === 'app' ? '#a855f7' : '#94a3b8', 
-              fontWeight: view === 'app' ? 700 : 500, 
+              color: view === 'app' ? 'var(--accent-cyan)' : '#94a3b8', 
+              fontWeight: 700, 
               cursor: 'pointer',
-              fontSize: '0.88rem',
+              fontSize: '0.8rem',
+              padding: '6px 16px',
+              borderRadius: '6px',
               outline: 'none',
-              transition: 'color 0.2s ease'
+              transition: 'all 0.2s ease'
             }}
           >
-            🌐 Live Simulator Map
+            🌐 Live Map
           </button>
           <button 
             onClick={() => setView('presets')} 
             style={{ 
-              background: 'transparent', 
+              background: view === 'presets' ? 'rgba(6, 182, 212, 0.08)' : 'transparent', 
               border: 'none', 
-              color: view === 'presets' ? '#a855f7' : '#94a3b8', 
-              fontWeight: view === 'presets' ? 700 : 500, 
+              color: view === 'presets' ? 'var(--accent-cyan)' : '#94a3b8', 
+              fontWeight: 700, 
               cursor: 'pointer',
-              fontSize: '0.88rem',
+              fontSize: '0.8rem',
+              padding: '6px 16px',
+              borderRadius: '6px',
               outline: 'none',
-              transition: 'color 0.2s ease'
+              transition: 'all 0.2s ease'
             }}
           >
-            🗺️ Preset Templates
+            🗺️ Templates
           </button>
           <button 
             onClick={() => setView('guide')} 
             style={{ 
-              background: 'transparent', 
+              background: view === 'guide' ? 'rgba(6, 182, 212, 0.08)' : 'transparent', 
               border: 'none', 
-              color: view === 'guide' ? '#a855f7' : '#94a3b8', 
-              fontWeight: view === 'guide' ? 700 : 500, 
+              color: view === 'guide' ? 'var(--accent-cyan)' : '#94a3b8', 
+              fontWeight: 700, 
               cursor: 'pointer',
-              fontSize: '0.88rem',
+              fontSize: '0.8rem',
+              padding: '6px 16px',
+              borderRadius: '6px',
               outline: 'none',
-              transition: 'color 0.2s ease'
+              transition: 'all 0.2s ease'
             }}
           >
-            📖 Planning Guide
+            📖 Guide
           </button>
         </nav>
       </header>

@@ -3,21 +3,22 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* Color Palette - Deep Dark Tech & Neon */
-  --bg-primary: #040810;
-  --bg-secondary: #0a1120;
-  --bg-panel: rgba(10, 17, 32, 0.8);
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(168, 85, 247, 0.4);
+  /* Color Palette - Cybernetic Space & Operations Telemetry */
+  --bg-primary: #030712;
+  --bg-secondary: #080e1a;
+  --bg-panel: rgba(11, 17, 32, 0.85);
+  --border-glass: rgba(255, 255, 255, 0.05);
+  --border-focus: rgba(6, 182, 212, 0.45);
   
   --color-text-primary: #f8fafc;
   --color-text-secondary: #94a3b8;
-  --color-text-muted: #5e6b7d;
+  --color-text-muted: #475569;
   
-  /* Neon Accents */
+  /* Operations Accents */
   --accent-cyan: #06b6d4;
+  --accent-cyan-glow: rgba(6, 182, 212, 0.25);
   --accent-purple: #a855f7;
-  --accent-purple-glow: rgba(168, 85, 247, 0.3);
+  --accent-purple-glow: rgba(168, 85, 247, 0.25);
   
   /* Traffic Status Colors */
   --traffic-clear: #10b981;
@@ -28,8 +29,6 @@
   color-scheme: dark;
   background-color: var(--bg-primary);
   color: var(--color-text-primary);
-
-  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -45,41 +44,62 @@ body {
   margin: 0;
   min-height: 100vh;
   background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.08) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.06) 0, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.003) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.003) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
   font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
 /* Glassmorphism Panel styles */
 .glass-panel {
   background: var(--bg-panel);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-glass);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.7);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  pointer-events: none;
 }
 
 .glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(6, 182, 212, 0.05);
 }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-purple);
+  background: var(--accent-cyan);
 }
 
 /* Header & Typography */
@@ -90,40 +110,43 @@ h1, h2, h3, h4 {
 }
 
 .glow-text {
-  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  text-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
 }
 
 /* Inputs & Form Elements */
 input, select, button {
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--color-text-primary);
-  background: rgba(10, 17, 32, 0.6);
-  border: 1px solid var(--border-glass);
+  background: rgba(8, 12, 24, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 input:focus, select:focus {
-  border-color: var(--accent-purple);
-  box-shadow: 0 0 0 2px var(--border-focus);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px var(--accent-cyan-glow);
+  background: rgba(11, 17, 32, 0.9);
 }
 
 /* Styled Button */
 .btn-primary {
-  background: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, var(--accent-cyan) 0%, #0284c7 100%);
   color: white;
   border: none;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px 0 rgba(168, 85, 247, 0.4);
+  box-shadow: 0 4px 16px 0 rgba(6, 182, 212, 0.25);
+  letter-spacing: 0.01em;
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px 0 rgba(168, 85, 247, 0.6);
+  box-shadow: 0 6px 20px 0 rgba(6, 182, 212, 0.45);
+  filter: brightness(1.05);
 }
 
 .btn-primary:active {
@@ -131,57 +154,82 @@ input:focus, select:focus {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text-secondary);
   border: 1px solid var(--border-glass);
   cursor: pointer;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-text-primary);
 }
 
 .btn-danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef6c6c;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.2);
   cursor: pointer;
 }
 
 .btn-danger:hover {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fee2e2;
 }
 
-/* Floating Action Button or Icon Button */
-.icon-btn {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  padding: 0;
-  cursor: pointer;
+/* Telemetry Card layout styles for Landing and Sidebar overlays */
+.telemetry-card {
+  background: rgba(8, 12, 24, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.telemetry-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.telemetry-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(6, 182, 212, 0.2);
+  background: rgba(11, 17, 32, 0.7);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(6, 182, 212, 0.05);
+}
+
+.telemetry-card:hover::before {
+  opacity: 1;
 }
 
 /* Badge Layouts */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 30px;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  border: 1px solid transparent;
 }
 
-.badge-clear { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.badge-moderate { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-.badge-heavy { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-.badge-jammed { background: rgba(136, 19, 55, 0.4); color: #fda4af; }
+.badge-clear { background: rgba(16, 185, 129, 0.08); color: #34d399; border-color: rgba(16, 185, 129, 0.15); }
+.badge-moderate { background: rgba(245, 158, 11, 0.08); color: #fbbf24; border-color: rgba(245, 158, 11, 0.15); }
+.badge-heavy { background: rgba(239, 68, 68, 0.08); color: #f87171; border-color: rgba(239, 68, 68, 0.15); }
+.badge-jammed { background: rgba(136, 19, 55, 0.25); color: #fda4af; border-color: rgba(136, 19, 55, 0.4); }
 
 /* ==========================================
    Leaflet Custom Dark Mode Customizations
@@ -203,7 +251,7 @@ input:focus, select:focus {
 }
 
 .leaflet-bar a:hover {
-  background-color: var(--accent-purple) !important;
+  background-color: var(--accent-cyan) !important;
   color: #fff !important;
 }
 
@@ -229,46 +277,48 @@ input:focus, select:focus {
   height: 22px;
   border-radius: 50%;
   background: rgba(8, 12, 20, 0.95);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  border: 2px solid #334155;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .node-core {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: #475569;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.node-core.start { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
-.node-core.end { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
-.node-core.selected { background-color: #a855f7; box-shadow: 0 0 10px #a855f7; }
+.node-core.start { background-color: #10b981; box-shadow: 0 0 10px #10b981; }
+.node-core.end { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+.node-core.selected { background-color: var(--accent-cyan); box-shadow: 0 0 12px var(--accent-cyan); }
 
 /* Custom Leaflet Tooltip */
 .node-map-tooltip {
-  background: var(--bg-panel) !important;
-  border: 1px solid var(--border-glass) !important;
+  background: rgba(8, 12, 24, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: var(--color-text-primary) !important;
-  border-radius: 6px !important;
-  font-size: 0.75rem !important;
-  padding: 4px 8px !important;
+  border-radius: 8px !important;
+  font-size: 0.72rem !important;
+  padding: 6px 10px !important;
   font-weight: 500;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.7) !important;
 }
 
 .node-map-tooltip::before {
-  border-top-color: var(--bg-panel) !important;
+  border-top-color: rgba(8, 12, 24, 0.95) !important;
 }
 
 /* Search animation visited nodes pulse styling */
 @keyframes map-pulse-anim {
   0% {
-    r: 8;
-    fill-opacity: 0.4;
+    r: 6;
+    fill-opacity: 0.5;
     stroke-opacity: 0.8;
   }
   100% {
-    r: 30;
+    r: 24;
     fill-opacity: 0;
     stroke-opacity: 0;
   }
@@ -280,7 +330,7 @@ input:focus, select:focus {
 
 /* Vehicle marker shadow glow */
 .vehicle-glow-dot {
-  filter: drop-shadow(0 0 4px currentColor);
+  filter: drop-shadow(0 0 3px currentColor);
   transition: all 0.05s linear;
 }
 
@@ -289,21 +339,14 @@ input:focus, select:focus {
    ========================================== */
 @keyframes float-slow {
   0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(40px, -60px) scale(1.15); }
-  66% { transform: translate(-30px, 30px) scale(0.9); }
+  33% { transform: translate(30px, -45px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
   100% { transform: translate(0px, 0px) scale(1); }
 }
 
 @keyframes float-medium {
   0% { transform: translate(0px, 0px) scale(1); }
-  50% { transform: translate(-50px, 50px) scale(1.1); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-
-@keyframes float-fast {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(-25px, -30px) scale(0.95); }
-  66% { transform: translate(30px, 20px) scale(1.08); }
+  50% { transform: translate(-30px, 35px) scale(1.05); }
   100% { transform: translate(0px, 0px) scale(1); }
 }
 
@@ -313,10 +356,6 @@ input:focus, select:focus {
 
 .floating-orb-2 {
   animation: float-medium 18s infinite ease-in-out;
-}
-
-.floating-orb-3 {
-  animation: float-fast 14s infinite ease-in-out;
 }
 
 /* Premium Route Directional Flow Animation and Neon Glow */
@@ -366,7 +405,7 @@ input:focus, select:focus {
 }
 
 .toast-message {
-  background: rgba(10, 17, 32, 0.9);
+  background: rgba(10, 17, 32, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-glass);
@@ -391,7 +430,7 @@ input:focus, select:focus {
 }
 
 .toast-info {
-  border-color: rgba(168, 85, 247, 0.4);
+  border-color: rgba(6, 182, 212, 0.4);
 }
 
 @keyframes toast-in-out {
@@ -411,7 +450,7 @@ input:focus, select:focus {
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-glass);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 10px;

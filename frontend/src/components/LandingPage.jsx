@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 
 export default function LandingPage({ onLaunch }) {
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [tickerOffset, setTickerOffset] = useState(0);
+
+  // Auto-scrolling ticker text simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerOffset(prev => (prev - 1) % 600);
+    }, 40);
+    return () => clearInterval(interval);
+  }, []);
 
   // Track scroll position to show/hide the Scroll to Top button
   useEffect(() => {
@@ -30,79 +39,125 @@ export default function LandingPage({ onLaunch }) {
     });
   };
 
+  const telemetryLines = [
+    "FEED: OSRM LIVE DRIVING API CONNECTED [OK]",
+    "GRID: RADIAL MANHATTAN RADAR INITIALIZED [OK]",
+    "SIMULATOR: 30 VEHICLES COMMENCING SEGMENT STEERING",
+    "METRIC ENGINES: DIJKSTRA, A-STAR, AND TRAFFIC-WEIGHT HYDRATED",
+    "SIGNAL CONTROLLER: RED/GREEN LIGHT INTERVAL TIMERS COMPILED"
+  ];
+
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(180deg, rgba(4, 8, 16, 0.9) 0%, rgba(4, 8, 16, 0.98) 100%), url("/city_traffic_bg.png") center/cover no-repeat fixed',
       color: '#f8fafc',
       position: 'relative',
       overflowX: 'hidden',
       fontFamily: "'Inter', sans-serif",
       scrollBehavior: 'smooth'
     }}>
-      {/* 1. FLOATING NEON ORBS */}
+      {/* 1. FUTURISTIC BACKGROUND ORBS & GLOWS */}
       <div className="floating-orb-1" style={{
         position: 'absolute',
-        top: '5%',
-        left: '-15vw',
-        width: '50vw',
-        height: '50vw',
+        top: '10%',
+        left: '-10vw',
+        width: '40vw',
+        height: '40vw',
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(168, 85, 247, 0) 70%)',
-        filter: 'blur(100px)',
+        background: 'radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, rgba(6, 182, 212, 0) 70%)',
+        filter: 'blur(120px)',
         zIndex: 1,
         pointerEvents: 'none'
       }} />
       <div className="floating-orb-2" style={{
         position: 'absolute',
-        top: '50%',
-        right: '-15vw',
+        top: '40%',
+        right: '-10vw',
         width: '45vw',
         height: '45vw',
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, rgba(6, 182, 212, 0) 70%)',
-        filter: 'blur(100px)',
+        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0) 70%)',
+        filter: 'blur(120px)',
         zIndex: 1,
         pointerEvents: 'none'
       }} />
 
+      {/* OPERATIONS STREAM BANNER */}
+      <div style={{
+        width: '100%',
+        background: 'rgba(6, 182, 212, 0.04)',
+        borderBottom: '1px solid rgba(6, 182, 212, 0.1)',
+        padding: '6px 0',
+        fontSize: '0.68rem',
+        fontFamily: 'monospace',
+        color: 'var(--accent-cyan)',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        position: 'relative',
+        zIndex: 10
+      }}>
+        <div style={{
+          display: 'inline-block',
+          transform: `translateX(${tickerOffset}px)`,
+          transition: 'transform 0.05s linear'
+        }}>
+          {telemetryLines.join(" \u00a0\u00a0\u2022\u00a0\u00a0 ")} \u00a0\u00a0\u2022\u00a0\u00a0 {telemetryLines.join(" \u00a0\u00a0\u2022\u00a0\u00a0 ")}
+        </div>
+      </div>
+
       {/* HEADER BAR */}
       <header style={{
         width: '100%',
-        maxWidth: '1100px',
+        maxWidth: '1200px',
         margin: '0 auto',
-        padding: '24px 20px',
+        padding: '20px 24px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         position: 'relative',
         zIndex: 10
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '1.4rem' }}>🚦</span>
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em' }}>
-            Urban<span style={{ color: '#a855f7' }}>Pulse</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '1.5rem' }}>🚦</span>
+          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+            Urban<span style={{ color: 'var(--accent-cyan)' }}>Pulse</span>
           </span>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            borderRadius: '20px',
+            padding: '2px 10px',
+            fontSize: '0.65rem',
+            color: '#34d399',
+            fontWeight: 700,
+            marginLeft: '12px'
+          }}>
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', animation: 'active-route-pulse 1s infinite alternate' }} />
+            GRID ENGINGE ONLINE
+          </div>
         </div>
         <button
           onClick={onLaunch}
           className="btn-primary"
           style={{
             fontSize: '0.8rem',
-            padding: '8px 20px',
+            padding: '10px 24px',
             borderRadius: '20px',
-            fontWeight: 600
+            fontWeight: 700
           }}
         >
-          Launch Simulator
+          Launch Control Deck
         </button>
       </header>
 
       {/* CORE CONTAINER */}
       <main style={{
-        maxWidth: '1000px',
+        maxWidth: '1100px',
         margin: '0 auto',
-        padding: '0 20px',
+        padding: '40px 24px',
         position: 'relative',
         zIndex: 10,
         display: 'flex',
@@ -112,88 +167,81 @@ export default function LandingPage({ onLaunch }) {
         
         {/* HERO SECTION */}
         <section style={{
-          minHeight: 'calc(100vh - 100px)',
+          minHeight: '75vh',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
           textAlign: 'center',
-          gap: '24px',
-          paddingBottom: '60px',
+          gap: '28px',
           position: 'relative'
         }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(168, 85, 247, 0.08)',
-            border: '1px solid rgba(168, 85, 247, 0.25)',
-            borderRadius: '20px',
-            padding: '5px 14px',
+            background: 'rgba(6, 182, 212, 0.08)',
+            border: '1px solid rgba(6, 182, 212, 0.2)',
+            borderRadius: '30px',
+            padding: '6px 16px',
             fontSize: '0.75rem',
-            color: '#c084fc',
-            fontWeight: 600,
+            color: 'var(--accent-cyan)',
+            fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.08em'
           }}>
-            Graph-Based Road Network Planner
+            🛰️ GRAPH TELEMETRY COMMAND CONSOLE
           </div>
           
           <h1 style={{
             fontFamily: "'Outfit', sans-serif",
-            fontSize: '3.6rem',
+            fontSize: '4.2rem',
             fontWeight: 800,
-            lineHeight: 1.1,
+            lineHeight: 1.05,
             letterSpacing: '-0.03em',
-            background: 'linear-gradient(135deg, #f8fafc 15%, #a855f7 65%, #06b6d4 100%)',
+            background: 'linear-gradient(135deg, #f8fafc 20%, var(--accent-cyan) 60%, var(--accent-purple) 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            maxWidth: '800px'
+            maxWidth: '900px'
           }}>
-            City Traffic Navigation System
+            City Traffic Optimization Console
           </h1>
           
           <p style={{
-            fontSize: '1.15rem',
-            color: '#94a3b8',
-            maxWidth: '600px',
-            lineHeight: 1.6
+            fontSize: '1.2rem',
+            color: 'var(--color-text-secondary)',
+            maxWidth: '650px',
+            lineHeight: 1.65
           }}>
-            A complete working dashboard utilizing advanced graph data structures to optimize city transit flow and simulate live traffic dynamics.
+            Analyze road connectivity, compute dynamic travel times, and synchronize traffic controls. A professional operations visualizer utilizing real curved street geometries.
           </p>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', gap: '16px', marginTop: '15px' }}>
             <button
               onClick={onLaunch}
+              className="btn-primary"
               style={{
-                background: 'linear-gradient(135deg, #a855f7 0%, #06b6d4 100%)',
-                color: '#ffffff',
                 fontFamily: "'Outfit', sans-serif",
                 fontSize: '1.1rem',
                 fontWeight: 700,
-                padding: '14px 36px',
-                border: 'none',
+                padding: '16px 42px',
                 borderRadius: '50px',
                 cursor: 'pointer',
-                boxShadow: '0 8px 25px rgba(168, 85, 247, 0.3)',
-                transition: 'all 0.2s ease',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '10px'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              Launch Live Map ⚡
+              Enter Live Simulator ⚡
             </button>
           </div>
 
-          {/* Animated Scroll Down mouse indicator */}
+          {/* Mouse Scroll indicator */}
           <div 
             onClick={handleScrollDown}
             style={{
               position: 'absolute',
-              bottom: '20px',
+              bottom: '-30px',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
@@ -206,7 +254,7 @@ export default function LandingPage({ onLaunch }) {
               width: '24px',
               height: '38px',
               borderRadius: '12px',
-              border: '2px solid rgba(255, 255, 255, 0.25)',
+              border: '2px solid rgba(255, 255, 255, 0.15)',
               display: 'flex',
               justifyContent: 'center',
               padding: '6px'
@@ -215,109 +263,114 @@ export default function LandingPage({ onLaunch }) {
                 width: '4px',
                 height: '8px',
                 borderRadius: '2px',
-                backgroundColor: '#a855f7',
+                backgroundColor: 'var(--accent-cyan)',
                 animation: 'scroll-dot 1.5s infinite'
               }} />
             </div>
-            <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Scroll to Explore
+            <span style={{ fontSize: '0.65rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+              Telemetry Specifications
             </span>
           </div>
         </section>
 
-        {/* SECTION 2: GRAPH DATA STRUCTURE IMPLEMENTATION */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        {/* SECTION 2: GRID ARCHITECTURE DETAILS */}
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '1.8rem', fontFamily: "'Outfit', sans-serif", color: '#f8fafc' }}>
-              The Graph Architecture
+            <h2 style={{ fontSize: '2rem', fontFamily: "'Outfit', sans-serif", color: '#f8fafc' }}>
+              The Grid Architecture
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '6px' }}>
-              How the city's road grid is modeled inside the algorithm's database.
-            </p>
+            <div style={{ width: '40px', height: '3px', background: 'var(--accent-cyan)', margin: '12px auto 0' }} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            <div className="glass-panel" style={{ padding: '24px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '12px' }}>📍</div>
-              <h4 style={{ fontSize: '1.05rem', color: '#c084fc', marginBottom: '8px' }}>Intersections (Nodes)</h4>
-              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: '1.6' }}>
-                Modeled as coordinates containing geographic positions. Features a light control state that cycles green/red timers, regulating vehicle crossings.
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
+            <div className="telemetry-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '1.8rem' }}>📍</span>
+                <h4 style={{ fontSize: '1.15rem', color: '#f8fafc' }}>Intersections (Nodes)</h4>
+              </div>
+              <p style={{ fontSize: '0.88rem', color: 'var(--color-text-secondary)', lineHeight: '1.65' }}>
+                Modeled as spatial coordinate matrices. Supports dynamic traffic controller lights with cycle timers, regulating simulated vehicle flow at grid crossings.
               </p>
             </div>
-            <div className="glass-panel" style={{ padding: '24px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '12px' }}>🛣️</div>
-              <h4 style={{ fontSize: '1.05rem', color: '#06b6d4', marginBottom: '8px' }}>Roadways (Edges)</h4>
-              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: '1.6' }}>
-                Modeled as directed links connecting nodes. Holds distance metrics, lanes configuration, speed limits, and a dynamic congestion index.
+            <div className="telemetry-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '1.8rem' }}>🛣️</span>
+                <h4 style={{ fontSize: '1.15rem', color: '#f8fafc' }}>Roadways (Edges)</h4>
+              </div>
+              <p style={{ fontSize: '0.88rem', color: 'var(--color-text-secondary)', lineHeight: '1.65' }}>
+                Directed road segments hydrating curved geometries. Integrates speed thresholds, lane counts, and live traffic load factors to simulate realistic bottlenecks.
               </p>
             </div>
           </div>
         </section>
 
-        {/* SECTION 3: PATH ROUTING PRIORITY */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        {/* SECTION 3: PATH SELECTION METHODS */}
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '1.8rem', fontFamily: "'Outfit', sans-serif", color: '#f8fafc' }}>
-              Path Optimization Methods
+            <h2 style={{ fontSize: '2rem', fontFamily: "'Outfit', sans-serif", color: '#f8fafc' }}>
+              Path Optimization Models
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '6px' }}>
-              Three optimization modes designed to calculate pathways across nodes.
-            </p>
+            <div style={{ width: '40px', height: '3px', background: 'var(--accent-cyan)', margin: '12px auto 0' }} />
           </div>
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '24px'
           }}>
             {[
               {
                 title: "Dynamic Congestion-Dodging",
                 color: "#10b981",
-                desc: "Calculates live travel delays based on speed limits and current gridlock levels, routing cars to clear streets."
+                icon: "⚡",
+                desc: "Calculates operational travel delays based on speed limits and live gridlock densities, dynamically steering transits onto clear paths."
               },
               {
                 title: "Traditional Shortest Distance",
                 color: "#64748b",
-                desc: "Determines paths based strictly on road lengths, representing standard shortest-line algorithms."
+                icon: "📏",
+                desc: "Calculates segments strictly using flat geographic road lengths, representing standard, non-congested route routing."
               },
               {
                 title: "Direct Eco-Scenic",
                 color: "#a855f7",
-                desc: "Uses straight-line geometric estimation towards the destination node to ensure direct routing."
+                icon: "🍃",
+                desc: "Uses straight-line heuristic distance calculations directed at target nodes, reducing search calculations for direct paths."
               }
             ].map((method, idx) => (
               <div
                 key={idx}
-                className="glass-panel"
+                className="telemetry-card"
                 style={{
-                  padding: '24px',
-                  borderLeft: `3px solid ${method.color}`,
-                  background: 'rgba(10, 17, 32, 0.4)'
+                  borderLeft: `4px solid ${method.color}`,
+                  padding: '28px'
                 }}
               >
-                <h4 style={{ fontSize: '1.0rem', color: '#f8fafc', marginBottom: '8px' }}>{method.title}</h4>
-                <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: '1.5' }}>{method.desc}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>{method.icon}</span>
+                  <h4 style={{ fontSize: '1.1rem', color: '#f8fafc' }}>{method.title}</h4>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.6' }}>{method.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* SECTION 4: NETWORK MINIMUM SPANNING TREE */}
-        <section className="glass-panel" style={{
-          padding: '40px 30px',
+        {/* SECTION 4: SPANNING TREE BACKBONE */}
+        <section className="telemetry-card" style={{
+          padding: '48px 36px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '20px',
+          gap: '24px',
           textAlign: 'center'
         }}>
-          <div style={{ fontSize: '2rem' }}>🕸️</div>
-          <h2 style={{ fontSize: '1.6rem', fontFamily: "'Outfit', sans-serif" }}>
-            Optimal Grid Backbone Layout
+          <div style={{ fontSize: '2.5rem' }}>🕸️</div>
+          <h2 style={{ fontSize: '1.8rem', fontFamily: "'Outfit', sans-serif" }}>
+            Optimal Backbone Topology
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem', maxWidth: '650px', lineHeight: '1.6' }}>
-            Utilizes Kruskal's algorithm to calculate the absolute minimum length of roadway required to connect all intersections without loops. This core layout represents optimal routing configurations for synchronized transit signaling cables and utility piping.
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.92rem', maxWidth: '750px', lineHeight: '1.7' }}>
+            Calculates an optimal grid layout connecting every node with minimum layout length using Kruskal's spanning tree algorithm. Essential for minimizing the layout cost of central utility trunk lines and synchronized signal line installations.
           </p>
         </section>
 
@@ -325,12 +378,12 @@ export default function LandingPage({ onLaunch }) {
 
       {/* FOOTER BAR */}
       <footer style={{
-        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.04)',
         width: '100%',
-        padding: '30px 20px',
+        padding: '30px 24px',
         textAlign: 'center',
         fontSize: '0.75rem',
-        color: '#5e6b7d',
+        color: '#475569',
         marginTop: '100px',
         position: 'relative',
         zIndex: 10,
@@ -339,7 +392,7 @@ export default function LandingPage({ onLaunch }) {
         alignItems: 'center',
         gap: '40px'
       }}>
-        <span>© {new Date().getFullYear()} UrbanPulse Simulator</span>
+        <span>© {new Date().getFullYear()} UrbanPulse Command Deck</span>
         <span>Made with 💜</span>
       </footer>
 
@@ -368,16 +421,16 @@ export default function LandingPage({ onLaunch }) {
             width: '40px',
             height: '40px',
             borderRadius: '50%',
-            background: 'rgba(10, 17, 32, 0.9)',
-            border: '1px solid rgba(168, 85, 247, 0.4)',
-            color: '#c084fc',
+            background: 'rgba(10, 17, 32, 0.95)',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            color: 'var(--accent-cyan)',
             cursor: 'pointer',
             fontSize: '1rem',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
             transition: 'transform 0.2s ease',
             outline: 'none'
           }}
