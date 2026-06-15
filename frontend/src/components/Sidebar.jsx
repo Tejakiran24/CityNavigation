@@ -8,6 +8,8 @@ export default function Sidebar({
   endNode,
   activeRoute,
   mode,
+  algorithm,
+  setAlgorithm,
   simulationSpeed,
   setMode,
   setStartNode,
@@ -21,12 +23,39 @@ export default function Sidebar({
   onClearMST,
   onResetMap,
   isMstActive,
-  onGoBack // Trigger transition back to Landing page
+  onGoBack,
+  weather,
+  setWeather,
+  activeEvent,
+  setActiveEvent,
+  showToast,
+  incidentActive,
+  onToggleIncident,
+  raceState,
+  setRaceState,
+  globalGreenTime,
+  setGlobalGreenTime,
+  globalRedTime,
+  setGlobalRedTime
 }) {
   const [activeTab, setActiveTab] = useState('navigation');
-  const [algorithm, setAlgorithm] = useState('traffic');
 
-  // Congestion index calculation (percentage of edges that are heavy or jammed)
+  const formatDistance = (m) => {
+    if (m >= 1000) {
+      return (m / 1000).toFixed(2) + ' km';
+    }
+    return Math.round(m) + ' m';
+  };
+
+  const formatDuration = (s) => {
+    const mins = Math.floor(s / 60);
+    const secs = Math.round(s % 60);
+    if (mins > 0) {
+      return `${mins} min ${secs} sec`;
+    }
+    return `${secs} sec`;
+  };
+
   const getCongestionIndex = () => {
     if (edges.length === 0) return 0;
     const congestedCount = edges.filter(e => e.traffic === 'heavy' || e.traffic === 'jammed').length;
@@ -35,240 +64,267 @@ export default function Sidebar({
 
   const congestionIndex = getCongestionIndex();
 
-  // Color mapping for congestion levels
   const getCongestionColor = (val) => {
-    if (val < 25) return '#10b981'; // Green
-    if (val < 60) return '#f59e0b'; // Orange
-    return '#ef4444'; // Red
+    if (val < 25) return 'var(--traffic-clear)';
+    if (val < 60) return 'var(--traffic-moderate)';
+    return 'var(--traffic-heavy)';
+  };
+
+  // Sandbox calculation metrics
+  const cycleTime = globalGreenTime + globalRedTime + 3; // +3s yellow
+  const greenRatio = globalGreenTime / cycleTime;
+  const flowRate = Math.round(greenRatio * 42); // simulated vehicles per minute
+  const efficiency = Math.round((flowRate / 30) * 100);
+
+  const handleStartRace = () => {
+    if (!startNode || !endNode) {
+      showToast('Select Origin and Target intersections first!', 'error');
+      return;
+    }
+    if (raceState === 'running') return;
+    setRaceState('running');
+    showToast('Solver race started. Animating path routes on map.', 'info');
   };
 
   return (
     <div className="glass-panel" style={{
       width: '100%',
-      maxWidth: '400px',
+      maxWidth: '380px',
       height: '100%',
       maxHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      padding: '20px',
-      gap: '20px',
-      overflowY: 'auto'
+      padding: '16px',
+      gap: '16px',
+      overflowY: 'auto',
+      borderLeft: '1px solid var(--border-clean)',
+      backgroundColor: 'var(--bg-panel)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      borderRadius: '6px'
     }}>
       {/* Title Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-clean)', paddingBottom: '10px' }}>
         <div>
-          <h2 className="glow-text" style={{ fontSize: '1.6rem', color: '#a855f7', marginBottom: '4px' }}>
-            UrbanPulse
+          <h2 style={{ fontSize: '1.2rem', color: 'var(--color-text-primary)', fontWeight: 800 }}>
+            TMD Console
           </h2>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
-            City Traffic Flow Optimizer
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.62rem', fontFamily: 'monospace', letterSpacing: '0.04em' }}>
+            SECTOR CONTROL ROOM DECK
           </p>
         </div>
-        {/* Back to Home Button */}
-        <button
-          className="btn-secondary"
-          onClick={onGoBack}
-          style={{ fontSize: '0.75rem', padding: '6px 12px' }}
-        >
-          🏠 Home
-        </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-glass)', paddingBottom: '2px', gap: '10px' }}>
-        {['navigation', 'editor', 'analytics'].map(tab => (
+      {/* 4-TAB TACTICAL SELECTOR */}
+      <div style={{ 
+        display: 'flex', 
+        background: 'var(--bg-primary)', 
+        border: '1px solid var(--border-clean)',
+        padding: '2px',
+        borderRadius: '6px',
+        gap: '2px'
+      }}>
+        {[
+          { id: 'navigation', label: 'Solver', icon: '🧭' },
+          { id: 'editor', label: 'Planner', icon: '🛠️' },
+          { id: 'sandbox', label: 'Signal', icon: '🚥' },
+          { id: 'telemetry', label: 'Telemetry', icon: '📊' }
+        ].map(tab => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
             style={{
               flex: 1,
-              background: activeTab === tab ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === tab ? '2px solid var(--accent-purple)' : '2px solid transparent',
-              color: activeTab === tab ? '#f8fafc' : '#64748b',
-              padding: '8px 4px',
+              background: activeTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
+              border: activeTab === tab.id ? '1px solid var(--border-clean)' : 'none',
+              color: activeTab === tab.id ? 'var(--accent-blue)' : 'var(--color-text-secondary)',
+              padding: '6px 0',
               cursor: 'pointer',
-              fontWeight: 600,
-              textTransform: 'capitalize',
-              borderRadius: '6px 6px 0 0'
+              fontWeight: 700,
+              fontSize: '0.7rem',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              boxShadow: activeTab === tab.id ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              transition: 'all 0.15s ease'
             }}
           >
-            {tab === 'navigation' ? 'Directions' : (tab === 'editor' ? 'Planner' : 'Stats')}
+            <span>{tab.icon}</span> {tab.label}
           </button>
         ))}
       </div>
 
       {/* TAB CONTENTS */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
         
-        {/* 1. NAVIGATION/DIRECTIONS TAB */}
+        {/* TAB 1: NAVIGATION ROUTE */}
         {activeTab === 'navigation' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontSize: '1rem', color: '#f8fafc' }}>Smart Navigation Engine</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h3 style={{ fontSize: '0.78rem', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid var(--border-clean)', paddingBottom: '4px' }}>
+              Route Solver
+            </h3>
             
-            {/* Start Node Selection */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Start Intersection</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <label style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Origin Node</label>
               <select 
                 value={startNode?.id || ''} 
                 onChange={(e) => setStartNode(nodes.find(n => n.id === e.target.value) || null)}
-                style={{ width: '100%' }}
+                style={{ width: '100%', fontSize: '0.78rem', padding: '6px 8px', borderRadius: '4px' }}
               >
-                <option value="">-- Select Origin Point --</option>
+                <option value="">-- Choose Origin Intersection --</option>
                 {nodes.map(node => (
                   <option key={node.id} value={node.id}>
-                    {node.name} {startNode?.id === node.id ? '(Start)' : ''}
+                    📍 {node.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* End Node Selection */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Destination Intersection</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <label style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Target Node</label>
               <select 
                 value={endNode?.id || ''} 
                 onChange={(e) => setEndNode(nodes.find(n => n.id === e.target.value) || null)}
-                style={{ width: '100%' }}
+                style={{ width: '100%', fontSize: '0.78rem', padding: '6px 8px', borderRadius: '4px' }}
               >
-                <option value="">-- Select Destination Point --</option>
+                <option value="">-- Choose Destination --</option>
                 {nodes.map(node => (
                   <option key={node.id} value={node.id}>
-                    {node.name} {endNode?.id === node.id ? '(End)' : ''}
+                    🏁 {node.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Algorithm Selector (renamed to non-technical titles) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Travel Path Priority</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <label style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Pathfinding Strategy</label>
               <select 
                 value={algorithm} 
                 onChange={(e) => setAlgorithm(e.target.value)}
-                style={{ width: '100%' }}
+                style={{ width: '100%', fontSize: '0.78rem', padding: '6px 8px', borderRadius: '4px' }}
               >
-                <option value="traffic">Intelligent Congestion-Dodging Route</option>
+                <option value="traffic">Dynamic Congestion-Bypassing Route</option>
                 <option value="dijkstra">Traditional Shortest Distance Route</option>
-                <option value="astar">Direct Eco-Scenic Route</option>
+                <option value="astar">Eco-Scenic Shortest Vector</option>
+                <option value="osrm">Real-World OSRM Street Route</option>
               </select>
             </div>
 
-            {/* Run Buttons */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
               <button
                 className="btn-primary"
                 onClick={() => onFindRoute(algorithm)}
                 disabled={!startNode || !endNode}
-                style={{ flex: 2, padding: '10px', opacity: (!startNode || !endNode) ? 0.5 : 1 }}
+                style={{ flex: 2, padding: '8px', fontSize: '0.78rem', borderRadius: '4px', opacity: (!startNode || !endNode) ? 0.45 : 1, pointerEvents: (!startNode || !endNode) ? 'none' : 'auto' }}
               >
-                Find Route
+                Solve Route
               </button>
               <button
                 className="btn-secondary"
                 onClick={onClearRoute}
-                style={{ flex: 1, padding: '10px' }}
+                style={{ flex: 1, padding: '8px', fontSize: '0.78rem', borderRadius: '4px' }}
               >
                 Clear
               </button>
             </div>
 
-            {/* Route Stats Result Display (non-technical renames) */}
             {activeRoute && (
-              <div className="glass-panel" style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <h4 style={{ fontSize: '0.85rem', color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Route Summary
+              <div className="metric-summary-container" style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <h4 style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Route Diagnostics
                 </h4>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#64748b' }}>Route Priority:</span>
-                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>
-                    {algorithm === 'traffic' ? 'Congestion-Dodging' : (algorithm === 'dijkstra' ? 'Traditional Shortest' : 'Direct Eco-Scenic')}
-                  </span>
+
+                <div className="metric-card" style={{ padding: '6px 10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.92rem' }}>🧭</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span className="metric-label">Routing Logic</span>
+                      <span className="metric-value" style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>
+                        {algorithm === 'traffic' ? 'Dynamic Traffic-Aware' : (algorithm === 'dijkstra' ? 'Shortest Path' : (algorithm === 'astar' ? 'Eco-Scenic' : 'OSRM Real-World'))}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#64748b' }}>Intersections Visited:</span>
-                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>
-                    {activeRoute.path ? activeRoute.path.length : 0}
-                  </span>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <div className="metric-card" style={{ padding: '6px 8px' }}>
+                    <span className="metric-icon" style={{ fontSize: '1rem' }}>🛣️</span>
+                    <div className="metric-details">
+                      <span className="metric-label">Distance</span>
+                      <span className="metric-value" style={{ fontSize: '0.82rem' }}>
+                        {activeRoute.totalCost ? formatDistance(activeRoute.totalCost) : '0 m'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card" style={{ padding: '6px 8px' }}>
+                    <span className="metric-icon" style={{ fontSize: '1rem' }}>⏱️</span>
+                    <div className="metric-details">
+                      <span className="metric-label">Travel Time</span>
+                      <span className="metric-value" style={{ color: 'var(--traffic-clear)', fontSize: '0.82rem' }}>
+                        {formatDuration(activeRoute.duration || (activeRoute.totalCost ? activeRoute.totalCost / 11.11 : 0))}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#64748b' }}>Total Travel Distance:</span>
-                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>
-                    {activeRoute.totalCost ? Math.round(activeRoute.totalCost) : 0} meters
-                  </span>
+
+                <div className="metric-card" style={{ padding: '6px 10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Intersections Crossed:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontFamily: 'monospace' }}>
+                      {activeRoute.path ? activeRoute.path.length : 0} nodes
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* 2. MAP EDITOR & PLANNER TAB */}
+        {/* TAB 2: EDIT PLANNER TOOLS */}
         {activeTab === 'editor' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Map Interaction Modes */}
-            <div>
-              <h3 style={{ fontSize: '1rem', color: '#f8fafc', marginBottom: '8px' }}>Map Editor Tools</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h3 style={{ fontSize: '0.78rem', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid var(--border-clean)', paddingBottom: '4px' }}>
+              Infrastructure Planner
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              {[
+                { id: 'select', label: 'Inspect Node', icon: '🔍', color: 'var(--accent-blue)' },
+                { id: 'add-node', label: 'Place Node', icon: '➕', color: 'var(--traffic-clear)' },
+                { id: 'add-edge', label: 'Link Node', icon: '🔗', color: 'var(--accent-blue)' },
+                { id: 'delete', label: 'Remove Element', icon: '🗑️', color: 'var(--traffic-heavy)' }
+              ].map(t => (
                 <button
-                  onClick={() => setMode('select')}
+                  key={t.id}
+                  onClick={() => setMode(t.id)}
                   style={{
-                    backgroundColor: mode === 'select' ? 'var(--accent-purple)' : 'rgba(255,255,255,0.05)',
-                    borderColor: mode === 'select' ? 'var(--accent-purple)' : 'var(--border-glass)',
-                    color: '#fff',
-                    padding: '8px',
+                    backgroundColor: mode === t.id ? 'var(--bg-primary)' : 'var(--bg-secondary)',
+                    borderColor: mode === t.id ? t.color : 'var(--border-clean)',
+                    color: mode === t.id ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                    padding: '8px 4px',
                     cursor: 'pointer',
-                    fontWeight: 600
+                    fontWeight: 700,
+                    fontSize: '0.72rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '2px',
+                    borderRadius: '4px'
                   }}
                 >
-                  🔍 Inspect Intersection
+                  <span style={{ fontSize: '1rem' }}>{t.icon}</span>
+                  {t.label}
                 </button>
-                <button
-                  onClick={() => setMode('add-node')}
-                  style={{
-                    backgroundColor: mode === 'add-node' ? '#10b981' : 'rgba(255,255,255,0.05)',
-                    borderColor: mode === 'add-node' ? '#10b981' : 'var(--border-glass)',
-                    color: '#fff',
-                    padding: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 600
-                  }}
-                >
-                  ➕ Place Intersection
-                </button>
-                <button
-                  onClick={() => setMode('add-edge')}
-                  style={{
-                    backgroundColor: mode === 'add-edge' ? '#06b6d4' : 'rgba(255,255,255,0.05)',
-                    borderColor: mode === 'add-edge' ? '#06b6d4' : 'var(--border-glass)',
-                    color: '#fff',
-                    padding: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 600
-                  }}
-                >
-                  🔗 Link Intersections
-                </button>
-                <button
-                  className="btn-danger"
-                  onClick={() => setMode('delete')}
-                  style={{
-                    backgroundColor: mode === 'delete' ? '#ef4444' : 'rgba(239, 68, 68, 0.1)',
-                    borderColor: mode === 'delete' ? '#ef4444' : 'rgba(239, 68, 68, 0.3)',
-                    color: '#ff9999',
-                    padding: '8px',
-                    fontWeight: 600
-                  }}
-                >
-                  🗑️ Removal Tool
-                </button>
-              </div>
+              ))}
             </div>
 
-            {/* Simulation Speed */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: '#94a3b8' }}>Traffic Simulation Speed</span>
-                <span style={{ fontWeight: 600, color: '#f8fafc' }}>
+            {/* Sim Speed */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'var(--bg-secondary)', border: '1px solid var(--border-clean)', padding: '10px', borderRadius: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', alignItems: 'center' }}>
+                <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>Simulation Speed</span>
+                <span style={{ fontWeight: 700, color: 'var(--accent-blue)', fontFamily: 'monospace' }}>
                   {simulationSpeed === 0 ? 'PAUSED' : `${simulationSpeed}x`}
                 </span>
               </div>
@@ -279,43 +335,44 @@ export default function Sidebar({
                 step="0.5"
                 value={simulationSpeed}
                 onChange={(e) => setSimulationSpeed(parseFloat(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--accent-purple)' }}
+                style={{ width: '100%', accentColor: 'var(--accent-blue)', cursor: 'pointer' }}
               />
             </div>
 
-            {/* Quick Simulation Actions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-              <h3 style={{ fontSize: '1rem', color: '#f8fafc' }}>Simulation Operations</h3>
+            {/* Operations */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Operational Overrides</span>
+              
               <button
                 className="btn-secondary"
                 onClick={onTriggerRandomJams}
-                style={{ padding: '8px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ padding: '6px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', borderRadius: '4px' }}
               >
-                💥 Simulate Random Jams
+                ⚠️ Inject Roadway Congestion
               </button>
               <button
                 className="btn-secondary"
                 onClick={onResetTraffic}
-                style={{ padding: '8px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ padding: '6px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', borderRadius: '4px' }}
               >
-                🟢 Clear Road Congestions
+                🟢 Flush Traffic Density
               </button>
               
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
                 <button
                   className="btn-secondary"
                   onClick={onCalculateMST}
-                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.8rem', backgroundColor: isMstActive ? 'rgba(6, 182, 212, 0.15)' : '', borderColor: isMstActive ? '#06b6d4' : '' }}
+                  style={{ flex: 1, padding: '6px', fontSize: '0.75rem', borderRadius: '4px', backgroundColor: isMstActive ? 'var(--bg-primary)' : '', borderColor: isMstActive ? 'var(--accent-blue)' : '' }}
                 >
-                  🕸️ Design Optimal Grid
+                  🕸️ Compute Grid Backbone
                 </button>
                 {isMstActive && (
                   <button
                     className="btn-secondary"
                     onClick={onClearMST}
-                    style={{ padding: '8px 12px', fontSize: '0.8rem' }}
+                    style={{ padding: '6px', fontSize: '0.75rem', borderRadius: '4px' }}
                   >
-                    Clear Backbone
+                    Clear
                   </button>
                 )}
               </div>
@@ -323,90 +380,280 @@ export default function Sidebar({
               <button
                 className="btn-danger"
                 onClick={onResetMap}
-                style={{ padding: '8px 12px', fontSize: '0.8rem', marginTop: '10px' }}
+                style={{ padding: '6px', fontSize: '0.75rem', marginTop: '2px', borderRadius: '4px' }}
               >
-                🔄 Reset Map to Default Grid
+                🔄 Restore Sector Layout
               </button>
             </div>
           </div>
         )}
 
-        {/* 3. STATS/METRICS TAB */}
-        {activeTab === 'analytics' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontSize: '1rem', color: '#f8fafc' }}>Real-time Traffic Metrics</h3>
+        {/* TAB 3: SIGNAL CONTROL */}
+        {activeTab === 'sandbox' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            
+            {/* 1. Traffic Light Timers */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--border-clean)', paddingBottom: '10px' }}>
+              <h4 style={{ fontSize: '0.78rem', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🚥 Signal Control Deck</h4>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Green Signal timer</span>
+                  <span style={{ fontWeight: 700, color: 'var(--traffic-clear)', fontFamily: 'monospace' }}>{globalGreenTime}s</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="5" 
+                  max="40" 
+                  value={globalGreenTime} 
+                  onChange={(e) => setGlobalGreenTime(parseInt(e.target.value))} 
+                  style={{ width: '100%', accentColor: 'var(--traffic-clear)', cursor: 'pointer' }}
+                />
+              </div>
 
-            {/* Congestion Index Box */}
-            <div className="glass-panel" style={{
-              padding: '16px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              borderLeft: `5px solid ${getCongestionColor(congestionIndex)}`
-            }}>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>City Congestion Index</span>
-              <span style={{ fontSize: '2.5rem', fontWeight: 800, color: getCongestionColor(congestionIndex) }}>
-                {congestionIndex}%
-              </span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                {congestionIndex < 25 ? 'Flowing smoothly' : (congestionIndex < 60 ? 'Moderate delays observed' : 'SEVERE GRIDLOCK DETECTED')}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Red Signal timer</span>
+                  <span style={{ fontWeight: 700, color: 'var(--traffic-heavy)', fontFamily: 'monospace' }}>{globalRedTime}s</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="5" 
+                  max="40" 
+                  value={globalRedTime} 
+                  onChange={(e) => setGlobalRedTime(parseInt(e.target.value))} 
+                  style={{ width: '100%', accentColor: 'var(--traffic-heavy)', cursor: 'pointer' }}
+                />
+              </div>
+
+              <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-clean)', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.7rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Cycle Duration (G+R+3s Yellow):</span>
+                  <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{cycleTime}s</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Throughput Estimate:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--accent-blue)', fontFamily: 'monospace' }}>~{flowRate} veh/min</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Clearance Performance:</span>
+                  <span style={{ fontWeight: 700, color: efficiency > 60 ? 'var(--traffic-clear)' : (efficiency > 35 ? 'var(--traffic-moderate)' : 'var(--traffic-heavy)'), fontFamily: 'monospace' }}>{efficiency}%</span>
+                </div>
+              </div>
             </div>
 
-            {/* Network Count Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div className="glass-panel" style={{ padding: '12px', textAlign: 'center', background: 'rgba(255,255,255,0.01)' }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#a855f7' }}>{nodes.length}</div>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Intersections</div>
+            {/* 2. Accident Detour Challenge */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderBottom: '1px solid var(--border-clean)', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ fontSize: '0.78rem', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🚧 Incident Feed</h4>
+                <button
+                  onClick={() => onToggleIncident(!incidentActive)}
+                  style={{
+                    backgroundColor: incidentActive ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-primary)',
+                    borderColor: incidentActive ? '#fca5a5' : 'var(--border-clean)',
+                    color: incidentActive ? '#ef4444' : 'var(--color-text-secondary)',
+                    padding: '3px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {incidentActive ? 'Incident simulated 🚨' : 'Simulate Collision'}
+                </button>
               </div>
-              <div className="glass-panel" style={{ padding: '12px', textAlign: 'center', background: 'rgba(255,255,255,0.01)' }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#06b6d4' }}>{edges.length}</div>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Roadways</div>
+
+              <p style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', lineHeight: 1.35 }}>
+                Renders a crash lane block near Kapila Theertham Junction. Dijkstra Solver queues through it, while Traffic-Aware detours.
+              </p>
+
+              {incidentActive && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '4px', padding: '6px', display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.7rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-clean)', paddingBottom: '2px' }}>
+                    <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Dijkstra Queue routing:</span>
+                    <span style={{ color: '#f87171', fontFamily: 'monospace', fontWeight: 700 }}>28 min (Gridlocked)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--traffic-clear)', fontWeight: 'bold' }}>Traffic-Aware Bypass:</span>
+                    <span style={{ color: '#34d399', fontFamily: 'monospace', fontWeight: 700 }}>13 min (Flowing)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Algorithm Battle on Map */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <h4 style={{ fontSize: '0.78rem', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🏆 Pathfinding Strategy Race</h4>
+              <p style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', lineHeight: 1.35 }}>
+                Animate colored markers representing Dijkstra (Red), A* (Purple), and Traffic-Aware (Blue) racing across the street grid.
+              </p>
+              
+              <button
+                onClick={handleStartRace}
+                disabled={raceState === 'running'}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  borderRadius: '4px',
+                  backgroundColor: raceState === 'running' ? '#64748b' : 'var(--accent-dark)'
+                }}
+              >
+                {raceState === 'running' ? '🏎️ Solver Race In Progress...' : '🏁 Run Solvers Race'}
+              </button>
+
+              {raceState === 'finished' && (
+                <div style={{ textAlign: 'center', padding: '4px', background: 'rgba(22, 163, 74, 0.1)', border: '1px solid rgba(22, 163, 74, 0.25)', color: 'var(--traffic-clear)', fontSize: '0.75rem', borderRadius: '4px', fontWeight: 700 }}>
+                  👑 Winner: Traffic-Aware (Detoured past the crash!)
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* TAB 4: TELEMETRY DIAGNOSTICS & EVENTS */}
+        {activeTab === 'telemetry' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            
+            {/* Weather & Civic Events Console */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--border-clean)', paddingBottom: '10px' }}>
+              <h4 style={{ fontSize: '0.78rem', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🌦️ Environmental Conditions</h4>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>WEATHER OVERRIDES</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    onClick={() => { setWeather('sunny'); showToast('Weather cleared. Standard speeds active.', 'success'); }}
+                    style={{ flex: 1, padding: '6px', fontSize: '0.72rem', borderRadius: '4px', backgroundColor: weather === 'sunny' ? 'var(--bg-primary)' : 'var(--bg-secondary)', borderColor: weather === 'sunny' ? 'var(--accent-blue)' : 'var(--border-clean)', color: weather === 'sunny' ? 'var(--accent-blue)' : 'var(--color-text-secondary)' }}
+                  >
+                    ☀️ Clear Sky
+                  </button>
+                  <button
+                    onClick={() => { setWeather('rain'); showToast('Heavy precipitation active. Muting speeds by 30%.', 'info'); }}
+                    style={{ flex: 1, padding: '6px', fontSize: '0.72rem', borderRadius: '4px', backgroundColor: weather === 'rain' ? 'var(--bg-primary)' : 'var(--bg-secondary)', borderColor: weather === 'rain' ? 'var(--accent-blue)' : 'var(--border-clean)', color: weather === 'rain' ? 'var(--accent-blue)' : 'var(--color-text-secondary)' }}
+                  >
+                    🌧️ Heavy Rain
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>CIVIC INCIDENT OVERLAYS</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    onClick={() => {
+                      const next = activeEvent === 'festival' ? 'none' : 'festival';
+                      setActiveEvent(next);
+                      showToast(next === 'festival' ? 'Leela Mahal Circle closed for Festival!' : 'Festival ended.', 'info');
+                    }}
+                    style={{ flex: 1, padding: '6px', fontSize: '0.72rem', borderRadius: '4px', backgroundColor: activeEvent === 'festival' ? 'var(--bg-primary)' : 'var(--bg-secondary)', borderColor: activeEvent === 'festival' ? 'var(--accent-blue)' : 'var(--border-clean)', color: activeEvent === 'festival' ? 'var(--accent-blue)' : 'var(--color-text-secondary)' }}
+                  >
+                    🎪 Street Festival
+                  </button>
+                  <button
+                    onClick={() => {
+                      const next = activeEvent === 'vip' ? 'none' : 'vip';
+                      setActiveEvent(next);
+                      showToast(next === 'vip' ? 'VIP Convoy active. Automatic signal priority enabled!' : 'VIP Convoy completed.', 'success');
+                    }}
+                    style={{ flex: 1, padding: '6px', fontSize: '0.72rem', borderRadius: '4px', backgroundColor: activeEvent === 'vip' ? 'var(--bg-primary)' : 'var(--bg-secondary)', borderColor: activeEvent === 'vip' ? 'var(--accent-blue)' : 'var(--border-clean)', color: activeEvent === 'vip' ? 'var(--accent-blue)' : 'var(--color-text-secondary)' }}
+                  >
+                    🚘 VIP Convoy Wave
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Gridlock index diagnostics */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderBottom: '1px solid var(--border-clean)', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Congestion Level</span>
+                <span className="badge" style={{
+                  background: congestionIndex < 25 ? '#dcfce7' : (congestionIndex < 60 ? '#fef3c7' : '#fee2e2'),
+                  color: getCongestionColor(congestionIndex),
+                  borderColor: getCongestionColor(congestionIndex),
+                  padding: '2px 6px',
+                  fontSize: '0.62rem'
+                }}>
+                  {congestionIndex < 25 ? 'Flowing' : (congestionIndex < 60 ? 'Moderate' : 'Heavy')}
+                </span>
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: getCongestionColor(congestionIndex), fontFamily: 'monospace', lineHeight: 1 }}>
+                {congestionIndex}%
+              </div>
+              <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ width: `${congestionIndex}%`, height: '100%', background: getCongestionColor(congestionIndex), transition: 'width 0.5s ease' }} />
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '2px' }}>
+                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-clean)', padding: '4px 6px', borderRadius: '4px', display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Intersections</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, fontFamily: 'monospace' }}>{nodes.length}</span>
+                </div>
+                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-clean)', padding: '4px 6px', borderRadius: '4px', display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Roadways</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, fontFamily: 'monospace' }}>{edges.length}</span>
+                </div>
               </div>
             </div>
 
             {/* Inspected Node Panel */}
             {selectedNode ? (
-              <div className="glass-panel" style={{ padding: '14px', background: 'rgba(168, 85, 247, 0.05)', borderColor: 'rgba(168, 85, 247, 0.2)' }}>
-                <h4 style={{ fontSize: '0.85rem', color: '#d8b4fe', marginBottom: '8px', textTransform: 'uppercase' }}>
-                  Intersection Inspector
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '10px',
+                borderLeft: '3px solid var(--accent-blue)',
+                background: 'var(--bg-primary)',
+                borderRadius: '4px',
+                gap: '6px'
+              }}>
+                <h4 style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Node Inspector
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Name:</span>
-                    <span style={{ fontWeight: 600, color: '#f8fafc' }}>{selectedNode.name}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-clean)', paddingBottom: '2px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Intersection Name:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{selectedNode.name}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>ID:</span>
-                    <span style={{ fontFamily: 'monospace', color: '#f8fafc' }}>{selectedNode.id}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-clean)', paddingBottom: '2px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>ID Reference:</span>
+                    <span style={{ fontFamily: 'monospace', color: '#c084fc', fontSize: '0.72rem' }}>{selectedNode.id}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Coordinates:</span>
-                    <span style={{ color: '#f8fafc' }}>Lat: {selectedNode.lat.toFixed(4)}, Lng: {selectedNode.lng.toFixed(4)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Traffic Light:</span>
-                    <span style={{ fontWeight: 600, textTransform: 'uppercase', color: selectedNode.trafficLight === 'red' ? '#ef4444' : '#10b981' }}>
-                      {selectedNode.trafficLight} ({selectedNode.lightTimer || 5}s cycle)
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Traffic Signal:</span>
+                    <span className="badge" style={{
+                      background: selectedNode.trafficLight === 'red' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(22, 163, 74, 0.12)',
+                      color: selectedNode.trafficLight === 'red' ? 'var(--traffic-heavy)' : 'var(--traffic-clear)',
+                      borderColor: selectedNode.trafficLight === 'red' ? 'var(--traffic-heavy)' : 'var(--traffic-clear)',
+                      padding: '1px 6px',
+                      fontSize: '0.62rem'
+                    }}>
+                      {selectedNode.trafficLight.toUpperCase()} ({selectedNode.lightTimer || 5}s cycle)
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '16px', color: '#64748b', fontSize: '0.75rem', border: '1px dashed var(--border-glass)', borderRadius: '8px' }}>
-                Select an intersection on the map in "Inspect Intersection" mode to view local coordinates and light details.
+              <div style={{ textAlign: 'center', padding: '10px', color: 'var(--color-text-muted)', fontSize: '0.68rem', border: '1px dashed var(--border-clean)', borderRadius: '6px' }}>
+                Select an intersection on the map in "Inspect Node" mode to audit traffic timers and node logs.
               </div>
             )}
+
           </div>
         )}
       </div>
 
       {/* Footer Info */}
-      <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-        <span>UrbanPulse v1.2</span>
-        <span>Made with 💜</span>
+      <div style={{ borderTop: '1px solid var(--border-clean)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#64748b', fontFamily: 'monospace' }}>
+        <span>TMD Console v1.4</span>
+        <span>Sector TMD</span>
       </div>
     </div>
   );
