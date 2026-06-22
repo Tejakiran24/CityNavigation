@@ -17,10 +17,24 @@ export default function LeafletMap({
   onNodeSelect,
   onAddRoad,
   onDeleteNode,
-  onDeleteEdge
+  onDeleteEdge,
+  onNodeDrag,
+  mapTheme,
+  onToggleTheme,
+  weather,
+  activeEvent,
+  incidentActive,
+  raceState,
+  setRaceState,
+  globalGreenTime,
+  globalRedTime,
+  mapCenter,
+  dashboardTheme,
+  onToggleDashboardTheme
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   // Group Layers for overlays
   const nodesGroupRef = useRef(L.layerGroup());
@@ -36,22 +50,75 @@ export default function LeafletMap({
   const trafficLightsRef = useRef({}); // { nodeId: { color, timer, maxTimer } }
   const [edgeStartNode, setEdgeStartNode] = useState(null);
 
+  // Prop refs to prevent simulation closure staleness
+  const weatherRef = useRef(weather);
+  const activeEventRef = useRef(activeEvent);
+  const incidentActiveRef = useRef(incidentActive);
+  const activeRouteRef = useRef(activeRoute);
+  
+  useEffect(() => { weatherRef.current = weather; }, [weather]);
+  useEffect(() => { activeEventRef.current = activeEvent; }, [activeEvent]);
+  useEffect(() => { incidentActiveRef.current = incidentActive; }, [incidentActive]);
+  useEffect(() => { activeRouteRef.current = activeRoute; }, [activeRoute]);
+
+  // Convoy & battle animation tracking refs
+  const vipProgressRef = useRef(0);
+  const vipMarkerRef = useRef(null);
+
+  const raceDijkstraProgress = useRef(0);
+  const raceAstarProgress = useRef(0);
+  const raceTrafficProgress = useRef(0);
+
+  const raceDijkstraMarker = useRef(null);
+  const raceAstarMarker = useRef(null);
+  const raceTrafficMarker = useRef(null);
+
+  const raceGeomDijkstra = useRef([]);
+  const raceGeomAstar = useRef([]);
+  const raceGeomTraffic = useRef([]);
+
+  const tileLayerRef = useRef(null);
+
+  // Dynamic tile switching effect based on mapTheme
+  useEffect(() => {
+    if (!mapRef.current || !isMapReady) return;
+
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+    }
+
+    let tileUrl;
+    if (mapTheme === 'satellite') {
+      tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    } else if (mapTheme === 'dark') {
+      tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    } else {
+      tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+
+    tileLayerRef.current = L.tileLayer(tileUrl, {
+      maxZoom: 19
+    }).addTo(mapRef.current);
+  }, [mapTheme, isMapReady]);
+
+  // Dynamic viewport centering based on active sector
+  useEffect(() => {
+    if (mapRef.current && mapCenter) {
+      mapRef.current.setView(mapCenter, 14, { animate: true, duration: 1.5 });
+    }
+  }, [mapCenter]);
+
   // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Center in Downtown Manhattan, NY
+    // Center in selected city center
     mapRef.current = L.map(mapContainerRef.current, {
-      center: [40.719, -73.996],
+      center: mapCenter || [13.628, 79.419],
       zoom: 14,
       zoomControl: false,
       attributionControl: false
     });
-
-    // Dark-themed tiles from CartoDB
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20
-    }).addTo(mapRef.current);
 
     // Add overlay groups to map
     edgesGroupRef.current.addTo(mapRef.current);
@@ -62,16 +129,19 @@ export default function LeafletMap({
 
     // Initialize temporary drawing polyline
     tempPolylineRef.current = L.polyline([], {
-      color: '#06b6d4',
+      color: '#2563eb',
       weight: 3,
       dashArray: '5, 8',
       opacity: 0.7
     });
 
+    setIsMapReady(true);
+
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+        setIsMapReady(false);
       }
     };
   }, []);
@@ -112,20 +182,24 @@ export default function LeafletMap({
     });
   }, [mode, edgeStartNode, onCanvasClick, onNodeSelect]);
 
-  // Sync traffic light timers
+  // Sync traffic light timers with sandbox overrides
   useEffect(() => {
     const lights = { ...trafficLightsRef.current };
     nodes.forEach(node => {
+      const greenMax = globalGreenTime * 20;
+      const redMax = globalRedTime * 20;
       if (!lights[node.id]) {
         lights[node.id] = {
           color: node.trafficLight || 'green',
-          timer: (node.lightTimer || 5) * 20, // frames at 20fps sim
-          maxTimer: (node.lightTimer || 5) * 20
+          timer: node.trafficLight === 'red' ? redMax : greenMax,
+          maxTimer: node.trafficLight === 'red' ? redMax : greenMax
         };
+      } else {
+        lights[node.id].maxTimer = lights[node.id].color === 'red' ? redMax : greenMax;
       }
     });
     trafficLightsRef.current = lights;
-  }, [nodes]);
+  }, [nodes, globalGreenTime, globalRedTime]);
 
   // Render Edges (Roads) using OSRM geometry
   useEffect(() => {
@@ -133,14 +207,22 @@ export default function LeafletMap({
 
     edgesGroupRef.current.clearLayers();
 
-    const trafficColors = {
-      'clear': '#10b981',      // green
+    const trafficColors = mapTheme === 'satellite' ? {
+      'clear': '#34d399',      // bright light emerald
+      'moderate': '#fbbf24',   // bright amber
+      'heavy': '#f87171',      // bright rose-red
+      'jammed': '#f43f5e'      // bright rose
+    } : {
+      'clear': '#16a34a',      // green
       'moderate': '#f59e0b',   // orange
-      'heavy': '#ef4444',      // red
-      'jammed': '#881337'      // burgundy
+      'heavy': '#dc2626',      // red
+      'jammed': '#991b1b'      // burgundy
     };
 
-    const hasActiveRoute = activeRoute && activeRoute.pathEdges && activeRoute.pathEdges.length > 0;
+    const hasActiveRoute = activeRoute && (
+      (activeRoute.pathEdges && activeRoute.pathEdges.length > 0) ||
+      (activeRoute.geometry && activeRoute.geometry.length > 0)
+    );
 
     edges.forEach(edge => {
       const src = nodes.find(n => n.id === edge.source);
@@ -149,11 +231,11 @@ export default function LeafletMap({
 
       const isMst = mstEdges && mstEdges.some(me => me.id === edge.id);
       const isPartOfRoute = activeRoute && activeRoute.pathEdges && activeRoute.pathEdges.includes(edge.id);
-      
-      const roadColor = isMst ? '#06b6d4' : (trafficColors[edge.traffic] || '#475569');
-      const roadWeight = isMst ? 6 : (edge.lanes * 2.5) + 1.5;
 
-      let roadOpacity = isMst ? 0.95 : 0.65;
+      const roadColor = isMst ? '#475569' : (trafficColors[edge.traffic] || '#cbd5e1');
+      const roadWeight = isMst ? 5 : (edge.lanes * 2.0) + 1.0;
+
+      let roadOpacity = isMst ? 0.95 : 0.8;
       if (hasActiveRoute) {
         roadOpacity = isPartOfRoute ? 0.95 : 0.12;
       }
@@ -209,14 +291,14 @@ export default function LeafletMap({
       const isPartOfRoute = activeRoute && activeRoute.path && activeRoute.path.includes(node.id);
 
       const lightState = trafficLightsRef.current[node.id] || { color: 'green' };
-      const lightHex = lightState.color === 'green' ? '#10b981' : (lightState.color === 'yellow' ? '#f59e0b' : '#ef4444');
+      const lightHex = lightState.color === 'green' ? '#16a34a' : (lightState.color === 'yellow' ? '#f59e0b' : '#dc2626');
 
       let nodeOpacity = 1.0;
       if (hasActiveRoute) {
         nodeOpacity = isPartOfRoute ? 1.0 : 0.25;
       }
 
-      let ringStyles = `border: 2px solid ${lightHex}; box-shadow: 0 0 6px ${lightHex};`;
+      let ringStyles = `border: 2px solid ${lightHex};`;
       let coreClass = 'node-core';
       if (isStart) coreClass += ' start';
       else if (isEnd) coreClass += ' end';
@@ -238,7 +320,37 @@ export default function LeafletMap({
         iconAnchor: [13, 13]
       });
 
-      const marker = L.marker([node.lat, node.lng], { icon });
+      const isDraggable = !!(isStart || isEnd);
+      const marker = L.marker([node.lat, node.lng], {
+        icon,
+        draggable: isDraggable
+      });
+
+      if (isDraggable) {
+        marker.on('dragstart', (e) => {
+          const el = e.target.getElement();
+          if (el) {
+            const innerNode = el.querySelector('.node-traffic-light');
+            if (innerNode) {
+              innerNode.classList.add('dragging-pin');
+            }
+          }
+        });
+
+        marker.on('dragend', (e) => {
+          const el = e.target.getElement();
+          if (el) {
+            const innerNode = el.querySelector('.node-traffic-light');
+            if (innerNode) {
+              innerNode.classList.remove('dragging-pin');
+            }
+          }
+          const newLatLng = e.target.getLatLng();
+          if (onNodeDrag) {
+            onNodeDrag(node.id, { lat: newLatLng.lat, lng: newLatLng.lng });
+          }
+        });
+      }
 
       marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
@@ -278,62 +390,57 @@ export default function LeafletMap({
 
     routeGroupRef.current.clearLayers();
 
-    if (activeRoute && activeRoute.pathEdges && activeRoute.pathEdges.length > 0) {
-      const latlngs = [];
+    if (activeRoute) {
+      let latlngs = [];
 
-      activeRoute.pathEdges.forEach(edgeId => {
-        const edge = edges.find(e => e.id === edgeId);
-        if (edge) {
-          if (edge.geometry && edge.geometry.length > 0) {
-            // Align geometries in coordinate sequence (source -> target order)
-            const coords = [...edge.geometry];
-            if (latlngs.length > 0) {
-              const lastPt = latlngs[latlngs.length - 1];
-              const distToFirst = Math.hypot(lastPt[0] - coords[0][0], lastPt[1] - coords[0][1]);
-              const distToLast = Math.hypot(lastPt[0] - coords[coords.length - 1][0], lastPt[1] - coords[coords.length - 1][1]);
-              if (distToLast < distToFirst) {
-                coords.reverse();
+      if (activeRoute.geometry && activeRoute.geometry.length > 0) {
+        latlngs = activeRoute.geometry;
+      } else if (activeRoute.pathEdges && activeRoute.pathEdges.length > 0) {
+        activeRoute.pathEdges.forEach(edgeId => {
+          const edge = edges.find(e => e.id === edgeId);
+          if (edge) {
+            if (edge.geometry && edge.geometry.length > 0) {
+              // Align geometries in coordinate sequence (source -> target order)
+              const coords = [...edge.geometry];
+              if (latlngs.length > 0) {
+                const lastPt = latlngs[latlngs.length - 1];
+                const distToFirst = Math.hypot(lastPt[0] - coords[0][0], lastPt[1] - coords[0][1]);
+                const distToLast = Math.hypot(lastPt[0] - coords[coords.length - 1][0], lastPt[1] - coords[coords.length - 1][1]);
+                if (distToLast < distToFirst) {
+                  coords.reverse();
+                }
+              }
+              latlngs.push(...coords);
+            } else {
+              const src = nodes.find(n => n.id === edge.source);
+              const dest = nodes.find(n => n.id === edge.target);
+              if (src && dest) {
+                latlngs.push([src.lat, src.lng], [dest.lat, dest.lng]);
               }
             }
-            latlngs.push(...coords);
-          } else {
-            const src = nodes.find(n => n.id === edge.source);
-            const dest = nodes.find(n => n.id === edge.target);
-            if (src && dest) {
-              latlngs.push([src.lat, src.lng], [dest.lat, dest.lng]);
-            }
           }
-        }
-      });
+        });
+      }
 
       if (latlngs.length > 0) {
+        // Underneath Layer: Thicker, clean white backing line
         L.polyline(latlngs, {
-          color: '#f43f5e',
-          weight: 12,
-          opacity: 0.55,
-          lineJoin: 'round',
-          lineCap: 'round'
-        }).addTo(routeGroupRef.current);
-
-        const routeCore = L.polyline(latlngs, {
           color: '#ffffff',
-          weight: 4,
-          opacity: 0.95,
-          dashArray: '10, 15',
+          weight: 9,
+          opacity: 1.0,
           lineJoin: 'round',
           lineCap: 'round'
         }).addTo(routeGroupRef.current);
 
-        let dashOffset = 0;
-        const animInterval = setInterval(() => {
-          dashOffset = (dashOffset - 1) % 25;
-          const el = routeCore.getElement();
-          if (el) {
-            el.style.strokeDashoffset = dashOffset + 'px';
-          }
-        }, 80);
-
-        return () => clearInterval(animInterval);
+        // Top Layer: Solid blue foreground route line with active-route-flow className
+        L.polyline(latlngs, {
+          color: '#2563eb',
+          weight: 5,
+          opacity: 0.95,
+          lineJoin: 'round',
+          lineCap: 'round',
+          className: 'active-route-flow'
+        }).addTo(routeGroupRef.current);
       }
     }
   }, [activeRoute, nodes, edges]);
@@ -357,9 +464,9 @@ export default function LeafletMap({
         if (node) {
           L.circleMarker([node.lat, node.lng], {
             radius: 15,
-            color: '#06b6d4',
+            color: '#2563eb',
             weight: 2,
-            fillColor: '#06b6d4',
+            fillColor: '#2563eb',
             fillOpacity: 0.1,
             className: 'pulse-map-circle'
           }).addTo(searchGroupRef.current);
@@ -372,6 +479,67 @@ export default function LeafletMap({
     }
   }, [visitedNodes, nodes, simulationSpeed]);
 
+  const incidentMarkerRef = useRef(null);
+  const festivalMarkerRef = useRef(null);
+
+  // Sync custom event overlays (incident collision and street festival tent)
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // 1. Incident Collision Marker
+    if (incidentActive) {
+      if (!incidentMarkerRef.current) {
+        const icon = L.divIcon({
+          className: 'incident-beacon',
+          html: '<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:14px;pointer-events:none;">🚧</div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+        const node = nodes.find(n => n.id === 'n2') || (nodes[1] ? { lat: nodes[1].lat, lng: nodes[1].lng } : { lat: 13.6465, lng: 79.4180 });
+        incidentMarkerRef.current = L.marker([node.lat, node.lng], { icon })
+          .bindTooltip("COLLISION ALERT: Kapila Theertham Junction blocked. Heavy delays.", { permanent: true, direction: 'right', className: 'node-map-tooltip' })
+          .addTo(mapRef.current);
+      }
+    } else {
+      if (incidentMarkerRef.current) {
+        incidentMarkerRef.current.remove();
+        incidentMarkerRef.current = null;
+      }
+    }
+
+    // 2. Chinatown Festival Marker
+    if (activeEvent === 'festival') {
+      if (!festivalMarkerRef.current) {
+        const icon = L.divIcon({
+          className: 'festival-lantern-glow',
+          html: '<div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:16px;pointer-events:none;">🎪</div>',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        });
+        const node = nodes.find(n => n.id === 'n3') || (nodes[2] ? { lat: nodes[2].lat, lng: nodes[2].lng } : { lat: 13.6355, lng: 79.4260 });
+        festivalMarkerRef.current = L.marker([node.lat, node.lng], { icon })
+          .bindTooltip("Leela Mahal Circle Festival Closure", { permanent: true, direction: 'top', className: 'node-map-tooltip' })
+          .addTo(mapRef.current);
+      }
+    } else {
+      if (festivalMarkerRef.current) {
+        festivalMarkerRef.current.remove();
+        festivalMarkerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (incidentMarkerRef.current) {
+        incidentMarkerRef.current.remove();
+        incidentMarkerRef.current = null;
+      }
+      if (festivalMarkerRef.current) {
+        festivalMarkerRef.current.remove();
+        festivalMarkerRef.current = null;
+      }
+    };
+  }, [incidentActive, activeEvent, nodes]);
+
   // Vehicle Simulation Loops (Steering along curved streets)
   useEffect(() => {
     if (!mapRef.current) return;
@@ -382,7 +550,7 @@ export default function LeafletMap({
     if (edges.length === 0) return;
 
     const targetCount = Math.min(edges.length * 3, 30);
-    const vehicleColors = ['#06b6d4', '#e11d48', '#fbbf24', '#a855f7', '#38bdf8', '#f472b6'];
+    const vehicleColors = ['#3b82f6', '#475569', '#16a34a', '#dc2626', '#f59e0b'];
 
     const initialVehicles = [];
     for (let i = 0; i < targetCount; i++) {
@@ -435,19 +603,27 @@ export default function LeafletMap({
       const speedMult = simulationSpeed;
       if (speedMult <= 0) return;
 
+      // Cycle traffic signals
       Object.keys(trafficLightsRef.current).forEach(nodeId => {
         const light = trafficLightsRef.current[nodeId];
-        light.timer -= 1;
-        if (light.timer <= 0) {
-          if (light.color === 'green') {
-            light.color = 'yellow';
-            light.timer = 40;
-          } else if (light.color === 'yellow') {
-            light.color = 'red';
-            light.timer = light.maxTimer;
-          } else {
-            light.color = 'green';
-            light.timer = light.maxTimer;
+        
+        // VIP Convoy wave forces green light cycles along the active route
+        if (activeEventRef.current === 'vip' && activeRouteRef.current && activeRouteRef.current.path && activeRouteRef.current.path.includes(nodeId)) {
+          light.color = 'green';
+          light.timer = light.maxTimer;
+        } else {
+          light.timer -= 1;
+          if (light.timer <= 0) {
+            if (light.color === 'green') {
+              light.color = 'yellow';
+              light.timer = 40;
+            } else if (light.color === 'yellow') {
+              light.color = 'red';
+              light.timer = light.maxTimer;
+            } else {
+              light.color = 'green';
+              light.timer = light.maxTimer;
+            }
           }
         }
       });
@@ -457,18 +633,218 @@ export default function LeafletMap({
         const node = nodes.find(n => Math.abs(n.lat - markerLatLng.lat) < 0.0001 && Math.abs(n.lng - markerLatLng.lng) < 0.0001);
         if (node) {
           const lightState = trafficLightsRef.current[node.id] || { color: 'green' };
-          const lightHex = lightState.color === 'green' ? '#10b981' : (lightState.color === 'yellow' ? '#f59e0b' : '#ef4444');
+          const lightHex = lightState.color === 'green' ? '#16a34a' : (lightState.color === 'yellow' ? '#f59e0b' : '#dc2626');
           
           const el = marker.getElement();
           if (el) {
             const container = el.querySelector('.node-traffic-light');
             if (container) {
               container.style.borderColor = lightHex;
-              container.style.boxShadow = `0 0 8px ${lightHex}`;
+              container.style.boxShadow = '';
             }
           }
         }
       });
+
+      // VIP Convoy Limousine Escort Animation
+      if (activeEventRef.current === 'vip' && activeRouteRef.current && activeRouteRef.current.geometry && activeRouteRef.current.geometry.length > 0) {
+        vipProgressRef.current = (vipProgressRef.current + 0.003 * speedMult) % 1.0;
+        
+        const geom = activeRouteRef.current.geometry;
+        const numSegs = geom.length - 1;
+        const idxFloat = vipProgressRef.current * numSegs;
+        const idx = Math.min(Math.floor(idxFloat), numSegs - 1);
+        const segProgress = idxFloat - idx;
+        const pStart = geom[idx];
+        const pEnd = geom[idx + 1] || pStart;
+        
+        const vlat = pStart[0] + (pEnd[0] - pStart[0]) * segProgress;
+        const vlng = pStart[1] + (pEnd[1] - pStart[1]) * segProgress;
+        
+        if (!vipMarkerRef.current && mapRef.current) {
+          const icon = L.divIcon({
+            className: 'vip-convoy-marker',
+            html: '<div style="font-size:16px;animation:siren-pulse 0.4s infinite alternate;pointer-events:none;">🚔🖤🚔</div>',
+            iconSize: [45, 20],
+            iconAnchor: [22, 10]
+          });
+          vipMarkerRef.current = L.marker([vlat, vlng], { icon }).addTo(vehiclesGroupRef.current);
+        } else if (vipMarkerRef.current) {
+          vipMarkerRef.current.setLatLng([vlat, vlng]);
+        }
+      } else {
+        if (vipMarkerRef.current) {
+          vipMarkerRef.current.remove();
+          vipMarkerRef.current = null;
+          vipProgressRef.current = 0;
+        }
+      }
+
+      // Dijkstra Pathfinder Algorithm Battle Helper
+      function solvePath(startId, endId, considerTraffic) {
+        const dist = {};
+        const prev = {};
+        const queue = new Set();
+        
+        nodes.forEach(n => {
+          dist[n.id] = Infinity;
+          prev[n.id] = null;
+          queue.add(n.id);
+        });
+        dist[startId] = 0;
+        
+        while (queue.size > 0) {
+          let minNode = null;
+          queue.forEach(nodeId => {
+            if (minNode === null || dist[nodeId] < dist[minNode]) {
+              minNode = nodeId;
+            }
+          });
+          
+          if (minNode === endId || dist[minNode] === Infinity) break;
+          queue.delete(minNode);
+          
+          const neighbors = edges.filter(e => e.source === minNode || e.target === minNode);
+          neighbors.forEach(edge => {
+            const neighborId = edge.source === minNode ? edge.target : edge.source;
+            if (!queue.has(neighborId)) return;
+            
+            let weight = edge.distance || 300;
+            if (considerTraffic) {
+              const trafficMultipliers = { 'clear': 1.0, 'moderate': 1.5, 'heavy': 4.0, 'jammed': 25.0 };
+              let mult = trafficMultipliers[edge.traffic] || 1.0;
+              
+              if (incidentActiveRef.current && edge.id === 'e2') {
+                mult = 25.0; // Incident block Wall Street
+              }
+              if (activeEventRef.current === 'festival' && (edge.source === 'n3' || edge.target === 'n3')) {
+                mult = 10.0; // Chinatown festival closure
+              }
+              weight = weight * mult;
+            }
+            
+            const alt = dist[minNode] + weight;
+            if (alt < dist[neighborId]) {
+              dist[neighborId] = alt;
+              prev[neighborId] = minNode;
+            }
+          });
+        }
+        
+        const path = [];
+        let curr = endId;
+        while (curr !== null) {
+          path.unshift(curr);
+          curr = prev[curr];
+        }
+        return path[0] === startId ? path : [];
+      }
+
+      function getPathGeometry(path) {
+        let coords = [];
+        for (let i = 0; i < path.length - 1; i++) {
+          const u = path[i];
+          const v = path[i+1];
+          const edge = edges.find(e => (e.source === u && e.target === v) || (e.source === v && e.target === u));
+          if (edge) {
+            const srcNode = nodes.find(n => n.id === edge.source);
+            const destNode = nodes.find(n => n.id === edge.target);
+            if (srcNode && destNode) {
+              const edgeGeom = edge.geometry && edge.geometry.length > 0
+                ? edge.geometry
+                : [[srcNode.lat, srcNode.lng], [destNode.lat, destNode.lng]];
+              
+              const segment = [...edgeGeom];
+              if (edge.source !== u) {
+                segment.reverse();
+              }
+              coords.push(...segment);
+            }
+          }
+        }
+        return coords;
+      }
+
+      function interpolateCoords(coords, progress) {
+        if (!coords || coords.length === 0) return null;
+        if (coords.length === 1) return coords[0];
+        if (progress <= 0) return coords[0];
+        if (progress >= 1) return coords[coords.length - 1];
+        
+        const numSegs = coords.length - 1;
+        const idxFloat = progress * numSegs;
+        const idx = Math.floor(idxFloat);
+        const segProgress = idxFloat - idx;
+        const pStart = coords[idx];
+        const pEnd = coords[idx + 1] || pStart;
+        
+        return [
+          pStart[0] + (pEnd[0] - pStart[0]) * segProgress,
+          pStart[1] + (pEnd[1] - pStart[1]) * segProgress
+        ];
+      }
+
+      // Handle Map Algorithm Battle
+      if (raceState === 'running') {
+        if (raceGeomDijkstra.current.length === 0 && startNode && endNode) {
+          const dPath = solvePath(startNode.id, endNode.id, false);
+          const tPath = solvePath(startNode.id, endNode.id, true);
+          const aPath = solvePath(startNode.id, endNode.id, false);
+
+          raceGeomDijkstra.current = getPathGeometry(dPath);
+          raceGeomTraffic.current = getPathGeometry(tPath);
+          raceGeomAstar.current = getPathGeometry(aPath);
+
+          raceDijkstraProgress.current = 0;
+          raceAstarProgress.current = 0;
+          raceTrafficProgress.current = 0;
+
+          if (raceDijkstraMarker.current) raceDijkstraMarker.current.remove();
+          if (raceAstarMarker.current) raceAstarMarker.current.remove();
+          if (raceTrafficMarker.current) raceTrafficMarker.current.remove();
+
+          raceDijkstraMarker.current = L.circleMarker(raceGeomDijkstra.current[0], { radius: 7, color: '#dc2626', fillColor: '#dc2626', fillOpacity: 0.95, weight: 2 }).addTo(vehiclesGroupRef.current).bindTooltip("Dijkstra", { permanent: true, direction: 'left', className: 'node-map-tooltip' });
+          raceAstarMarker.current = L.circleMarker(raceGeomAstar.current[0], { radius: 7, color: '#8b5cf6', fillColor: '#8b5cf6', fillOpacity: 0.95, weight: 2 }).addTo(vehiclesGroupRef.current).bindTooltip("A* Search", { permanent: true, direction: 'right', className: 'node-map-tooltip' });
+          raceTrafficMarker.current = L.circleMarker(raceGeomTraffic.current[0], { radius: 7, color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.95, weight: 2 }).addTo(vehiclesGroupRef.current).bindTooltip("Traffic-Aware", { permanent: true, direction: 'top', className: 'node-map-tooltip' });
+        }
+
+        const stepVal = 0.006 * speedMult;
+
+        // Dijkstra slows down on edge e2 if incident active
+        if (raceDijkstraProgress.current < 1.0 && raceGeomDijkstra.current.length > 0) {
+          const isAtWallStreet = incidentActiveRef.current && (raceDijkstraProgress.current > 0.35 && raceDijkstraProgress.current < 0.75);
+          const factor = isAtWallStreet ? 0.03 : 1.0;
+          raceDijkstraProgress.current = Math.min(1.0, raceDijkstraProgress.current + stepVal * factor);
+          const pt = interpolateCoords(raceGeomDijkstra.current, raceDijkstraProgress.current);
+          if (pt && raceDijkstraMarker.current) raceDijkstraMarker.current.setLatLng(pt);
+        }
+
+        // A* moves steadily
+        if (raceAstarProgress.current < 1.0 && raceGeomAstar.current.length > 0) {
+          raceAstarProgress.current = Math.min(1.0, raceAstarProgress.current + stepVal * 0.85);
+          const pt = interpolateCoords(raceGeomAstar.current, raceAstarProgress.current);
+          if (pt && raceAstarMarker.current) raceAstarMarker.current.setLatLng(pt);
+        }
+
+        // Traffic-Aware detours and sweeps to victory
+        if (raceTrafficProgress.current < 1.0 && raceGeomTraffic.current.length > 0) {
+          raceTrafficProgress.current = Math.min(1.0, raceTrafficProgress.current + stepVal * 1.15);
+          const pt = interpolateCoords(raceGeomTraffic.current, raceTrafficProgress.current);
+          if (pt && raceTrafficMarker.current) raceTrafficMarker.current.setLatLng(pt);
+        }
+
+        // Winner declared when Traffic-Aware finishes
+        if (raceTrafficProgress.current >= 1.0 && raceDijkstraProgress.current < 1.0) {
+          setRaceState('finished');
+        }
+      } else if (raceState === 'idle') {
+        if (raceDijkstraMarker.current) { raceDijkstraMarker.current.remove(); raceDijkstraMarker.current = null; }
+        if (raceAstarMarker.current) { raceAstarMarker.current.remove(); raceAstarMarker.current = null; }
+        if (raceTrafficMarker.current) { raceTrafficMarker.current.remove(); raceTrafficMarker.current = null; }
+        raceGeomDijkstra.current = [];
+        raceGeomAstar.current = [];
+        raceGeomTraffic.current = [];
+      }
 
       const trafficMultipliers = { 'clear': 1.0, 'moderate': 0.6, 'heavy': 0.25, 'jammed': 0.04 };
 
@@ -480,11 +856,23 @@ export default function LeafletMap({
         const dest = nodes.find(n => n.id === edge.target);
         if (!src || !dest) return;
 
-        const congestionMultiplier = trafficMultipliers[edge.traffic] || 1.0;
+        let congestionMultiplier = trafficMultipliers[edge.traffic] || 1.0;
+
+        // Apply event overrides (Chinatown festival blocks node n3, Incident blocks edge e2)
+        if (activeEventRef.current === 'festival' && (edge.source === 'n3' || edge.target === 'n3')) {
+          congestionMultiplier = 0.04;
+        }
+        if (incidentActiveRef.current && edge.id === 'e2') {
+          congestionMultiplier = 0.04;
+        }
+
+        // Rainstorm slows vehicles by 30%
+        const weatherMultiplier = weatherRef.current === 'rain' ? 0.7 : 1.0;
+
         const roadSpeedLimit = edge.speedLimit || 50;
         const lanes = edge.lanes || 2;
         
-        const step = vehicle.speed * speedMult * congestionMultiplier * (roadSpeedLimit / 50) * (1 + (lanes - 1) * 0.1);
+        const step = vehicle.speed * speedMult * congestionMultiplier * weatherMultiplier * (roadSpeedLimit / 50) * (1 + (lanes - 1) * 0.1);
 
         const destNodeId = vehicle.direction === 1 ? edge.target : edge.source;
         const light = trafficLightsRef.current[destNodeId];
@@ -555,9 +943,62 @@ export default function LeafletMap({
         style={{
           width: '100%',
           height: '100%',
-          backgroundColor: '#040810'
+          backgroundColor: '#f8fafc'
         }}
       />
+      
+      {/* Rain Overlays */}
+      {weather === 'rain' && <div className="rain-overlay" />}
+
+      {/* GIS LAYER SELECTOR WIDGET */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          zIndex: 1000,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-clean)',
+          borderRadius: '6px',
+          padding: '4px',
+          display: 'flex',
+          gap: '4px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        {[
+          { id: 'light', label: 'Vector', icon: '🗺️' },
+          { id: 'dark', label: 'Dark Ops', icon: '🌌' },
+          { id: 'satellite', label: 'Satellite', icon: '🛰️' }
+        ].map(layer => {
+          const isActive = mapTheme === layer.id;
+          return (
+            <button
+              key={layer.id}
+              onClick={() => {
+                onToggleTheme(layer.id);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                border: 'none',
+                background: isActive ? 'var(--accent-dark)' : 'transparent',
+                color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>{layer.icon}</span>
+              <span>{layer.label}</span>
+            </button>
+          );
+        })}
+      </div>
       
       {/* Floating Info Box */}
       <div
@@ -567,14 +1008,15 @@ export default function LeafletMap({
           left: '16px',
           zIndex: 1000,
           pointerEvents: 'none',
-          padding: '8px 12px',
-          borderRadius: '8px',
-          background: 'rgba(10, 17, 32, 0.85)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          fontSize: '0.8rem',
+          padding: '6px 12px',
+          borderRadius: '6px',
+          background: '#ffffff',
+          border: '1px solid var(--border-clean)',
+          fontSize: '0.78rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
         }}
       >
         <span
@@ -583,14 +1025,14 @@ export default function LeafletMap({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            backgroundColor: mode === 'add-node' ? '#10b981' : (mode === 'add-edge' ? '#06b6d4' : (mode === 'delete' ? '#ef4444' : '#a855f7'))
+            backgroundColor: mode === 'add-node' ? '#16a34a' : (mode === 'add-edge' ? '#2563eb' : (mode === 'delete' ? '#dc2626' : '#8b5cf6'))
           }}
         />
-        <span style={{ color: '#94a3b8' }}>
-          Mode: <strong style={{ color: '#f8fafc', textTransform: 'capitalize' }}>{mode.replace('-', ' ')}</strong>
+        <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+          Mode: <strong style={{ color: 'var(--color-text-primary)', textTransform: 'capitalize' }}>{mode.replace('-', ' ')}</strong>
         </span>
         {edgeStartNode && (
-          <span style={{ color: '#64748b' }}>
+          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem' }}>
             (Linking from {edgeStartNode.name})
           </span>
         )}
@@ -611,72 +1053,94 @@ export default function LeafletMap({
         <button
           onClick={() => mapRef.current && mapRef.current.zoomIn()}
           style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '8px',
-            background: 'rgba(10, 17, 32, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            color: '#fff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '6px',
+            background: '#ffffff',
+            border: '1px solid var(--border-clean)',
+            color: 'var(--color-text-primary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.25rem',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            transition: 'all 0.2s ease',
+            fontSize: '1.15rem',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+            transition: 'all 0.15s ease',
             outline: 'none'
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-purple)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(168,85,247,0.4)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; e.currentTarget.style.borderColor = 'var(--border-clean)'; }}
         >
           ＋
         </button>
         <button
           onClick={() => mapRef.current && mapRef.current.zoomOut()}
           style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '8px',
-            background: 'rgba(10, 17, 32, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            color: '#fff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '6px',
+            background: '#ffffff',
+            border: '1px solid var(--border-clean)',
+            color: 'var(--color-text-primary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.25rem',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            transition: 'all 0.2s ease',
+            fontSize: '1.15rem',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+            transition: 'all 0.15s ease',
             outline: 'none'
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-purple)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(168,85,247,0.4)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; e.currentTarget.style.borderColor = 'var(--border-clean)'; }}
         >
           －
         </button>
         <button
-          onClick={() => mapRef.current && mapRef.current.setView([40.719, -73.996], 14)}
+          onClick={() => mapRef.current && mapRef.current.setView(mapCenter || [13.628, 79.419], 14)}
           style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '8px',
-            background: 'rgba(10, 17, 32, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            color: '#fff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '6px',
+            background: '#ffffff',
+            border: '1px solid var(--border-clean)',
+            color: 'var(--color-text-primary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.1rem',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            transition: 'all 0.2s ease',
+            fontSize: '1.05rem',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+            transition: 'all 0.15s ease',
             outline: 'none'
           }}
           title="Recenter Map"
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-purple)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(168,85,247,0.4)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; e.currentTarget.style.borderColor = 'var(--border-clean)'; }}
         >
           🎯
+        </button>
+        <button
+          onClick={onToggleDashboardTheme}
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '6px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-clean)',
+            color: 'var(--color-text-primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.05rem',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+            transition: 'all 0.15s ease',
+            outline: 'none'
+          }}
+          title="Toggle Dashboard Theme"
+        >
+          {dashboardTheme === 'dark' ? '☀️' : '🌙'}
         </button>
       </div>
     </div>
